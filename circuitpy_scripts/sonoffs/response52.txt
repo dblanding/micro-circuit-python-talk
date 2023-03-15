@@ -1,0 +1,15 @@
+Lights on: OK
+Lights off Unknown or restricted command!
+Lights on: OK
+Lights off Unknown or restricted command!
+Lights on: OK
+Lights off Unknown or restricted command!
+Lights on: OK
+Lights off Unknown or restricted command!
+Lights on: OK
+Lights off OK
+Lights on: OK
+Lights off Unknown or restricted command!
+Lights on: OK
+Lights off OK
+

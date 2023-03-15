@@ -1,0 +1,24 @@
+WiFi status: 3
+Initial (rtc)    (2023, 3, 10, 4, 20, 37, 18, 0)
+rtc reset (UTC)  (2023, 3, 11, 5, 1, 37, 18, 0)
+2:0:0 (UTC); 21:0:0 (Local)
+2:30:0 (UTC); 21:30:0 (Local)
+3:0:0 (UTC); 22:0:0 (Local)
+3:30:0 (UTC); 22:30:0 (Local)
+4:0:0 (UTC); 23:0:0 (Local)
+4:30:0 (UTC); 23:30:0 (Local)
+5:0:0 (UTC); 0:0:0 (Local)
+5:30:0 (UTC); 0:30:0 (Local)
+6:0:0 (UTC); 1:0:0 (Local)
+6:30:0 (UTC); 1:30:0 (Local)
+7:0:0 (UTC); 2:0:0 (Local)
+7:30:0 (UTC); 2:30:0 (Local)
+8:0:0 (UTC); 3:0:0 (Local)
+{
+"log": "GPIO 12 Set to 0",
+"plugin": 1,
+"pin": 12,
+"mode": "output",
+"state": 0
+}
+
