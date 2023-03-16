@@ -1,5 +1,5 @@
 # Project: Use a microprocessor to regulate grandfather clock (pendulum)
-* Programmed an ESP32 to get time from an npt server and initiate the onboard RTC
+* Programmed an ESP32 to get time from an ntp server and initiate the onboard RTC
     * Easy-Peasy, but I think it would be more fun for me to do the rest of the programming in python...
 * Tried using CircuitPython on the  Metro M0 Express
     * Metro doesn't support WiFi connectivity - but I don't really need this.

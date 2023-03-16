@@ -5,7 +5,10 @@
 
 * I have been using Python for almost a quarter of a century now.
 * In 2000, I read Mark Lutz's book **Learning Python** and used a project example from the book to build an online CGI website for automating the administration of a squash box-league at Kodak.
-* When I first learned Python, the language was much smaller, but already quite powerful
+* Python (then at version 1.5.2) was much smaller, but already very capable.
+* Since then, it has evolved through version 2 and is now at version 3.11
+
+![Python Version History](imgs/python_version_history.png)
 
 ## Factors contributing to Python's explosive popularity
 
@@ -99,9 +102,9 @@ In functional programming, functions are treated as first-class citizens, meanin
 ![FOSDEM TALK](imgs/fosdem/13.png)
 ![FOSDEM TALK](imgs/fosdem/14.png)
 
-
 ## How is MicroPython the same / different from Python?
-* The syntax and coding style of MicroPython is the same as full Python (Python3).
+* The syntax and coding style of MicroPython is the same as full Python
+    * [MicroPython implements Python 3.4 and some select features of Python 3.5 and above](https://docs.micropython.org/en/latest/genrst/index.html)
 * Python is designed to run on larger and more powerful processors such as a desktop or a laptop computer. MicroPython is designed to run on smaller, cheaper, and low power microcontrollers such as PyBoards, Raspberry Pi Boards, and Arduino Boards.
 * MicroPython is a *stripped-down* version of full Python
 * Wheras Python has hundreds of thousands of libraries, these are not availble for use by MicroPython.
@@ -117,6 +120,26 @@ In functional programming, functions are treated as first-class citizens, meanin
     * Detailed instructions for loading the latest version of CircuitPython 
     * The available libraries for each board are different, depending on the capabilities of the particular board.
     * Detailed example projects are presented, along with *Project bundles* for download
+
+## It looks like MicroPython is poised to compete directly with Arduino
+
+![Good-Bye Arduino](imgs/good-bye_arduino.png)
+### [#240 Time to Say Goodbye to Arduino and Go On to Micropython/ Adafruit Circuitpython?](https://www.youtube.com/watch?v=m1miwCJtxeM&list=RDCMUCu7_D0o48KbfhpEohoP7YSQ&index=12)
+> Python seems to be the fastest growing programming language. It is also widely used to program Raspberry Pis, and it is on the verge to become available on our small microcontrollers. Has the time come to leave the Arduino IDE and go on? Time for a closer look.
+
+![Arduino-Lab Micropython](imgs/arduino-lab-micropython.png)
+### [Arduino Announces Support for MicroPython, Brings it to Several of its Development Boards](https://www.electronics-lab.com/arduino-announces-support-for-micropython-brings-it-to-several-of-its-development-boards/)
+> So, it finally happened that MicroPython eventually became a part of the Arduino ecosystem. The Arduino team recently announced that it is bringing in the microcontroller-focused Python into a number of its products, making Micropython the second officially-supported language in the history of the company. This is such a big move for Arduino which for a long time had focused only on C/C++ programming languages.
+
+![Raspberry Pi Pico](imgs/raspi-pico.jpg)
+### [Raspberry Pi Dives Into The Microcontroller World With The New Raspberry Pi Pico](https://www.electronics-lab.com/raspberry-pi-dives-into-the-microcontroller-world-with-the-new-raspberry-pi-pico/)
+> Today, we woke up to some very interesting news. The Raspberry Pi foundation is finally taking their first steps in Arduino territory! Well, not quite, as they are more working together than rivaling each other. After both companies dominate the maker market with their widely popular, easy to use boards that the community loves, the Raspberry Pi Pico comes in, a blazing fast and peripherall-rich microcontroller, based on the brand new RP2040 chip.
+
+## Blink: Code comparison
+
+![Arduino Code](imgs/blink-arduino.png)
+![MicroPython Code](imgs/blink-micropy.png)
+![CircuitPython Code](imgs/blink-circuitpy.png)
 
 ## My personal segue into CircuitPython:
 
@@ -135,28 +158,138 @@ In functional programming, functions are treated as first-class citizens, meanin
 
 ![Project](imgs/project.jpg)
 
-* So then I thought: Well, I can still play with the solar cells and build a solar car with a battery to allow it to drive through shady areas
-    * I found another project onlne that showed how to use Solar cells to charge a battery
-        * So I ordered some battery charger modules
-        * and some linear voltage regulators
-        * and some more solar cells
-
-![solar car](imgs/solar_car.png)
-
-* And I can still play with the Metro and learn CircuitPython
+* Well, I can still play with the Metro and learn CircuitPython
     * Leading to a couple of potential projects
         * Grandfather clock regulator
         * Controller for carriage lights
     
-### How I got started with CircuitPython using the Adafruit Metro M0 Express
+## How I got started with CircuitPython using the Adafruit Metro M0 Express
+### Project: Use a microprocessor to regulate grandfather clock (pendulum)
+* Programmed an ESP32 to get time from an ntp server and initiate the onboard RTC
+    * Easy-Peasy, but I think it would be more fun for me to do the rest of the programming in python...
+* Tried using CircuitPython on the  Metro M0 Express
+    * Metro doesn't support WiFi connectivity - but I don't really need this.
+    * Metro doesn't have an RTC, so I ordered an Adafruit PCF8523 Real Time Clock
+    * [Adafruit PCF8523 Real Time Clock](https://learn.adafruit.com/adafruit-pcf8523-real-time-clock)
+    * [Connection to the Metro M0 with Arduino](https://learn.adafruit.com/adafruit-pcf8523-real-time-clock/rtc-with-arduino)
+    * [Connection to the Metro M0 with CircuitPython](https://learn.adafruit.com/adafruit-pcf8523-real-time-clock/rtc-with-circuitpython)
 
-#### Installing CircuitPYthon on the Metro M0
+#### Installed CircuitPython on the Metro M0
 
-#### Installing the Mu Editor on my laptop
+#### Installed the Mu Editor on my laptop
 
-#### At this point, I decided to present this talk on MicroPyhon / CircuiPython
-* I began to search the internet for information about MicroPython / CircuitPython
-* I hit the mother lode!
+#### Everything works, but now I want to continue exploring CircuitPython with a board that supports WiFi
+
+## Got the M4 AirLift to be able to connect to an NTP server
+
+* Disappointing performance in connecting to WiFi
+
+### Try [Internet Connect!](https://learn.adafruit.com/adafruit-metro-m4-express-airlift-wifi/internet-connect-2)
+* This uses the following imports:
+```
+import board
+import busio
+from digitalio import DigitalInOut
+import adafruit_requests as requests
+import adafruit_esp32spi.adafruit_esp32spi_socket as socket
+from adafruit_esp32spi import adafruit_esp32spi
+```
+* This struggled for a long time but eventually worked!
+```
+ESP32 SPI webclient test
+ESP32 found and in idle mode
+Firmware vers. bytearray(b'1.2.2\x00')
+MAC addr: ['0x20', '0xbf', '0x1e', '0x51', '0x91', '0x40']
+	NETGEAR90		RSSI: -54
+	WRCHPD		RSSI: -88
+	Jim Wifi		RSSI: -89
+	Gators		RSSI: -90
+	CenturyLink3384_EXT		RSSI: -91
+	Cummins1801		RSSI: -92
+	CaptionCall2_298115		RSSI: -93
+	WM314a3c		RSSI: -93
+Connecting to AP...
+could not connect to AP, retrying:  ('Failed to connect to ssid', b'NETGEAR90')
+could not connect to AP, retrying:  ('Failed to connect to ssid', b'NETGEAR90')
+could not connect to AP, retrying:  ('Failed to connect to ssid', b'NETGEAR90')
+could not connect to AP, retrying:  ('Failed to connect to ssid', b'NETGEAR90')
+could not connect to AP, retrying:  ('Failed to connect to ssid', b'NETGEAR90')
+could not connect to AP, retrying:  ('Failed to connect to ssid', b'NETGEAR90')
+could not connect to AP, retrying:  ('Failed to connect to ssid', b'NETGEAR90')
+could not connect to AP, retrying:  ('No such ssid', b'NETGEAR90')
+could not connect to AP, retrying:  ('Failed to connect to ssid', b'NETGEAR90')
+could not connect to AP, retrying:  ('Failed to connect to ssid', b'NETGEAR90')
+could not connect to AP, retrying:  ('Failed to connect to ssid', b'NETGEAR90')
+could not connect to AP, retrying:  ('Failed to connect to ssid', b'NETGEAR90')
+could not connect to AP, retrying:  ('Failed to connect to ssid', b'NETGEAR90')
+could not connect to AP, retrying:  ('Failed to connect to ssid', b'NETGEAR90')
+could not connect to AP, retrying:  ('No such ssid', b'NETGEAR90')
+could not connect to AP, retrying:  ('Failed to connect to ssid', b'NETGEAR90')
+Connected to NETGEAR90 	RSSI: -50
+My IP address is 192.168.1.22
+IP lookup adafruit.com: 104.20.38.240
+Ping google.com: 170 ms
+Fetching text from http://wifitest.adafruit.com/testwifi/index.html
+----------------------------------------
+This is a test of Adafruit WiFi!
+If you can read this, its working :)
+----------------------------------------
+
+Fetching json from http://api.coindesk.com/v1/bpi/currentprice/USD.json
+----------------------------------------
+{'time': {'updated': 'Jan 27, 2023 11:25:00 UTC', 'updatedISO': '2023-01-27T11:25:00+00:00', 'updateduk': 'Jan 27, 2023 at 11:25 GMT'}, 'disclaimer': 'This data was produced from the CoinDesk Bitcoin Price Index (USD). Non-USD currency data converted using hourly conversion rate from openexchangerates.org', 'bpi': {'USD': {'code': 'USD', 'description': 'United States Dollar', 'rate_float': 22959.1, 'rate': '22,959.0809'}}}
+----------------------------------------
+Done!
+```
+* Whew! What a struggle that was!
+
+## Got the Metro ESP32-S2 Express
+
+* Some minor differences from the M0 & M4
+    * Uses C-type USB rather than micro-USB
+    * Setup to load CircuitPython
+    * Lots of builtins
+    * Has its own RTC
+    * Works great connecting to WiFi and running NTP Connection
+
+* At this point, I decided to jump away from Adafruit CircuitPython and try MicroPython on the Raspberry Pi Pico W
+
+## How to Install MicroPython on Raspberry Pi Pico-W RP2040
+* Install Thonny 
+    * $ `pip install thonny`
+* Now Thonny can be started from normal terminal
+    * $ `thonny`
+* Drag & Drop installation of MicroPython onto Pico
+
+![Drag&Drop Micor-Python Animated GIF](imgs/MicroPython-640x360-v2.gif)
+
+The animated GIF above is a little bit misleading. The URL from which you download the uf2 file (in step 1 above) is located at the website linked to by clicking on `INDEX.HTM` (shown in step 3). Once you have downloaded that file, you just need to do 2 more steps, as shown below:
+* STEP 1 Download the UF2 file.
+* STEP 2 
+    * Press and hold the 'BOOTSEL' button
+    * Plug in the USB cable
+    * Release the 'BOOTSEL' button
+    * 'RPI-RP2' now shows up mounted in the host computer's filesystem
+* STEP 3 Drag & Drop the downloaded .UF2 file into the 'RPI-RP2' folder
+
+![step 0](imgs/install-0.png)
+
+* After plugging in the USB (with BOOTSEL button pressed)
+    * `RPI-RP2` now shows up on the Desktop
+* Click to open `INDEX.HTM`
+
+![step 1](imgs/install-1.png)
+
+* Scroll down and click on `MicroPython`
+ 
+![step 2](imgs/install-2.png)
+![step 3](imgs/install-3.png)
+
+* Click on `Raspberry Pi Pico W` to download latest version of rp2-pico-w-*.uf2
+* Drag and drop this file into `RPI-RP2` folder
+* The `RPI-RP2` folder will now disappear from the Desktop (it will be no longer mounted)
+* The Pico is now available as device `/dev/ttyACM0`
+* Start Thonny, which will connect to it at `/dev/ttyACM0`
 
 ## Some relevant links:
 * Video (55 min) presented at FOSDEM '23 [An Introduction to MicroPython](https://ftp.osuosl.org/pub/fosdem/2023/UD2.218A/python_micropython_intro.mp4)
@@ -175,6 +308,18 @@ In functional programming, functions are treated as first-class citizens, meanin
 
 * Video [Most Popular Programming Languages](https://statisticsanddata.org/data/the-most-popular-programming-languages-1965-2022-new-update/)
 * Asked on CircuitPython Forum if there is a [library to send emails](https://forums.adafruit.com/viewtopic.php?p=963132#p963132) like uMail in MicroPython
+
+## Documentation for MicroPython on Raspberry Pi Pico W
+
+* [The official documentation for Raspberry Pi computers and microcontrollers](https://www.raspberrypi.com/documentation/microcontrollers/?version=E0C9125B0D9B)
+    * [Connecting to the Internet with Raspberry Pi Pico W](https://datasheets.raspberrypi.com/picow/connecting-to-the-internet-with-pico-w.pdf)
+* [Official MicroPython documentation (for the RP2)](https://docs.micropython.org/en/latest/rp2/general.html)
+* Kevin McAleer video [Micropython Threads - Use Both Cores, on Raspberry Pi Pico and ESP32](https://www.youtube.com/watch?v=QeDnjcdGrpY)
+* Andreas Spiess video #240 [Time to Say Good-Bye (to Arduino)](https://www.youtube.com/watch?v=m1miwCJtxeM&list=RDCMUCu7_D0o48KbfhpEohoP7YSQ&index=11)
+* Andreas Spiess video #370 [Pi Pico vs Competition](https://www.youtube.com/watch?v=cVHCllbN3bQ)
+* Andreas Spiess video #372 [How to use the two Cores of the Pi Pico? And how fast are Interrupts?](https://www.youtube.com/watch?v=9vvobRfFOwk) 
+* Drone Bot Workshop [CircuitPython with Raspberry Pi Pico](https://www.youtube.com/watch?v=07vG-_CcDG0)
+
 
 ## How you can get started learning Python
 
