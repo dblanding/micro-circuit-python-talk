@@ -323,8 +323,8 @@ The animated GIF above is a little bit misleading. The URL from which you downlo
 
 ## How you can get started learning Python
 
-* Reuven Lerner's Free online course **Python for non-programmers**
-* **Python Crash Course** No-Starch Press
+* Reuven Lerner's Free online course [Python for non-programmers](https://store.lerner.co.il/python-for-non-programmers-live)
+* [Python Crash Course]() No-Starch Press
 
 ![Python Crash Course](imgs/python-crash-course.jpg)
 
