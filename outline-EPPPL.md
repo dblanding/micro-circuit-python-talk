@@ -247,8 +247,8 @@ Done!
 
 * Some minor differences from the M0 & M4
     * Uses C-type USB rather than micro-USB
-    * Setup to load CircuitPython
-    * Lots of builtins
+    * Setup to load CircuitPython is a bit more complicated
+    * Lots of builtin modules
     * Has its own RTC
     * Works great connecting to WiFi and running NTP Connection
 
@@ -259,7 +259,7 @@ Done!
     * $ `pip install thonny`
 * Now Thonny can be started from normal terminal
     * $ `thonny`
-* Drag & Drop installation of MicroPython onto Pico
+* Drag & Drop installation of MicroPython onto Pico is a breeze!
 
 ![Drag&Drop Micor-Python Animated GIF](imgs/MicroPython-640x360-v2.gif)
 
