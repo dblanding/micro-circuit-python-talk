@@ -324,11 +324,11 @@ The animated GIF above is a little bit misleading. The URL from which you downlo
 ## How you can get started learning Python
 
 * Reuven Lerner's Free online course [Python for non-programmers](https://store.lerner.co.il/python-for-non-programmers-live)
-* [Python Crash Course]() No-Starch Press
+* Python Crash Course by Eric Matthes
 
 ![Python Crash Course](imgs/python-crash-course.jpg)
 
-* Start right in with a Raspberry Pi Pico W ($15) and this excellent beginners book from Raspberry Pi Foundation
+* Start right in with a Raspberry Pi Pico W ($15) and this excellent companion book from Raspberry Pi Foundation
 
 ![Raspberry Pi Pico MicroPython Book](imgs/raspi_pico_micropython_book.png)
 
