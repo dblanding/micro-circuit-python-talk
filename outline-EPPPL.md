@@ -319,7 +319,8 @@ The animated GIF above is a little bit misleading. The URL from which you downlo
 * Andreas Spiess video #370 [Pi Pico vs Competition](https://www.youtube.com/watch?v=cVHCllbN3bQ)
 * Andreas Spiess video #372 [How to use the two Cores of the Pi Pico? And how fast are Interrupts?](https://www.youtube.com/watch?v=9vvobRfFOwk) 
 * Drone Bot Workshop [CircuitPython with Raspberry Pi Pico](https://www.youtube.com/watch?v=07vG-_CcDG0)
-
+* Video: [Multi Thread Coding on the Raspberry Pi Pico in MicroPython](https://www.youtube.com/watch?v=1q0EaTkztIs)
+    * Associated code on [GitHub repo](https://github.com/getis/pi-pico-spi-lcd-ili9341-st7789)
 
 ## How you can get started learning Python
 

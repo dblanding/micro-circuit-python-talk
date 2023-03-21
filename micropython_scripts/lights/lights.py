@@ -71,18 +71,24 @@ def get_sunset_time():
     return (H, M, S)
 
 def lights_on():
+    ok = False
     try:
         r = urequests.get(LIGHTS_ON_URL)
         record(r.text)
+        ok = True
     except Exception as e:
         record(str(e))
+    return ok
 
 def lights_off():
+    ok = False
     try:
         r = urequests.get(LIGHTS_OFF_URL)
         record(r.text)
+        ok = True
     except Exception as e:
         record(str(e))
+    return ok
 
 def connect_to_network():
     wlan.active(True)
@@ -210,13 +216,19 @@ while True:
     # At sunset, turn on lights
     if h == H and m == M:
         record("Turning lights on")
-        lights_on()
+        for attempt in range(3):
+            if lights_on():
+                break
+            time.sleep(5)
 
     # At 9:01 PM local time, turn lights off
     utc_hour = local_hour_to_utc_hour(9 + 12)
     if h == utc_hour and m == 1:
         record("Turning lights off")
-        lights_off()
+        for attempt in range(3):
+            if lights_off():
+                break
+            time.sleep(5)
 
     # Flash LED
     for _ in range(3):
