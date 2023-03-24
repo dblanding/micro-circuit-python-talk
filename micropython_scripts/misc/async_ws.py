@@ -6,7 +6,6 @@ from secrets import secrets
 from machine import Pin
 import uasyncio as asyncio
 
-led = Pin(15, Pin.OUT)
 onboard = Pin("LED", Pin.OUT, value=0)
 
 ssid = secrets['ssid']
@@ -51,13 +50,12 @@ async def serve_client(reader, writer):
     while await reader.readline() != b"\r\n":
         pass
 
-    stateis = ''
     fname = "data.txt"
     file = open(fname)
-    stateis += file.read()
+    data = file.read()
     file.close
 
-    response = html % stateis
+    response = html % data
     writer.write('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
     writer.write(response)
 
@@ -73,7 +71,7 @@ async def main():
     asyncio.create_task(asyncio.start_server(serve_client, "0.0.0.0", 80))
     while True:
         onboard.on()
-        print("heartbeat")
+        # print("heartbeat")
         await asyncio.sleep(0.25)
         onboard.off()
         await asyncio.sleep(5)
@@ -82,5 +80,3 @@ try:
     asyncio.run(main())
 finally:
     asyncio.new_event_loop()
-
-print("arrived here")  # This never gets printed
