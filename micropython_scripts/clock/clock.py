@@ -47,8 +47,8 @@ password = secrets['wifi_password']
 
 html = """<!DOCTYPE html>
 <html>
-    <head> <title>CLOCK REGULATOR</title> </head>
-    <body> <h1>CLOCK REGULATOR</h1>
+    <head> <title>Clock Regulator</title> </head>
+    <body> <h1>Clock_Regulator</h1>
         <pre>%s</pre>
     </body>
 </html>
@@ -61,14 +61,7 @@ sensor = Pin(4, Pin.IN, Pin.PULL_UP)  # Pendulum_sensor
 
 count = 0  # Accumulated number of elapsed 'ticks'
 snsr_high = False  # status previous time through loop
-'''
-def record(line):
-    """Combined print and append to data file."""
-    print(line)
-    line += '\n'
-    with open(DATAFILENAME, 'a') as file:
-        file.write(line)
-'''
+
 wlan = network.WLAN(network.STA_IF)
 
 def connect_to_network():
@@ -123,6 +116,7 @@ async def main():
     print("Initial (rtc)  ", local_time)
 
     # Set RTC to (utc) time from ntp server
+    print('setting rtc to UTC...')
     try:
         settime()
     except OSError as e:
@@ -168,7 +162,6 @@ async def main():
             if m == 0:
                 gc_text = 'free: ' + str(gc.mem_free()) + '\n'
                 gc.collect()
-                
 
         await asyncio.sleep(0.005)  # debounce delay
 
