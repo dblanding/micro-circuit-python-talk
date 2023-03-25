@@ -47,8 +47,8 @@ password = secrets['wifi_password']
 
 html = """<!DOCTYPE html>
 <html>
-    <head> <title>Pico W</title> </head>
-    <body> <h1>Pico W</h1>
+    <head> <title>CLOCK REGULATOR</title> </head>
+    <body> <h1>CLOCK REGULATOR</h1>
         <pre>%s</pre>
     </body>
 </html>

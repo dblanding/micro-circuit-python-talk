@@ -41,8 +41,8 @@ S = 0
 
 html = """<!DOCTYPE html>
 <html>
-    <head> <title>Pico W</title> </head>
-    <body> <h1>Pico W</h1>
+    <head> <title>Clock Regulator</title> </head>
+    <body> <h1>Clock Regulator</h1>
         <pre>%s</pre>
     </body>
 </html>
@@ -143,16 +143,20 @@ async def main():
     # Pico Real Time Clock
     rtc = RTC()
     local_time = rtc.datetime()
-    print("Initial (rtc)  ", local_time)
+    print("Initial (rtc) ", local_time)
 
     # Set RTC to (utc) time from ntp server
-    try:
-        settime()
-    except OSError as e:
-        print('OSError', e, 'while trying to set rtc')
+    while rtc.datetime()[0] == 2021:
+        try:
+            settime()
+        except OSError as e:
+            print('OSError', e, 'while trying to set rtc')
+        print('setting rtc to UTC...')
+        time.sleep(1)
 
     gm_time = rtc.datetime()
-    print("rtc reset (UTC)", gm_time)
+    print('Reset to (UTC)', gm_time)
+    record("power-up @ (%d, %d, %d, %d, %d, %d, %d, %d) (UTC)" % gm_time)
 
     print('Setting up webserver...')
     asyncio.create_task(asyncio.start_server(serve_client, "0.0.0.0", 80))
@@ -182,6 +186,7 @@ async def main():
         if h == 4 and m == 59:
             with open(DATAFILENAME, 'w') as file:
                 file.write('Date: %d/%d/%d\n' % (mo, d, y))
+                file.write('Sunset yesterday @ %s:%s:%s' % (H, M, S))
         
         # At 22:0:0 (UTC), get time of today's sunset
         if h == 22 and m == 0:
