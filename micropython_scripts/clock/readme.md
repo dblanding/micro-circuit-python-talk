@@ -23,6 +23,10 @@
 * The pulses are counted.
 * With every 66 pulses, the time given by the microprocessor's RTC should show another elapsed minute.
 
+## Mechanical configuration:
+
+![mech config](imgs/IMG-3250.jpg)
+
 ## The way the program works:
 
 * The Pendulum length is adjusted to make the clock run slightly **SLOW**
@@ -35,7 +39,5 @@
 
 ![Web screen](imgs/web-screen.png)
 
-## Mechanical configuration:
 
-![mech config](imgs/IMG-3250.jpg)
 
