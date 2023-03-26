@@ -186,7 +186,7 @@ async def main():
         if h == 4 and m == 59:
             with open(DATAFILENAME, 'w') as file:
                 file.write('Date: %d/%d/%d\n' % (mo, d, y))
-                file.write('Sunset yesterday @ %s:%s:%s' % (H, M, S))
+                file.write('Sunset yesterday @ %s:%s:%s\n' % (H, M, S))
         
         # At 22:0:0 (UTC), get time of today's sunset
         if h == 22 and m == 0:
