@@ -48,7 +48,7 @@ password = secrets['wifi_password']
 html = """<!DOCTYPE html>
 <html>
     <head> <title>Clock Regulator</title> </head>
-    <body> <h1>Clock_Regulator</h1>
+    <body> <h1>Clock Regulator</h1>
         <pre>%s</pre>
     </body>
 </html>
@@ -158,8 +158,8 @@ async def main():
             if len(data) > MAXLEN:
                 data.pop(0)
             
-            # collect garbage hourly
-            if m == 0:
+            # collect garbage every 30 minutes
+            if m == 0 or m == 30:
                 gc_text = 'free: ' + str(gc.mem_free()) + '\n'
                 gc.collect()
 
