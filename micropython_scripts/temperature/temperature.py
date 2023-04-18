@@ -1,15 +1,17 @@
 """
-control carriage lights: On at sunset / Off at 'bedtime'
-Make daily log data available via webserver
+Measure room temperature using Dallas 18B20
+Make daily data available via webserver
+Log daily highs and lows
 """
 
+import onewire
+import ds18x20
 import gc
 import micropython
 from  machine import Pin, RTC
 import network
 from ntptime import settime
 import time
-import urequests
 import _thread
 from secrets import secrets
 import uasyncio as asyncio
@@ -17,32 +19,27 @@ import socket
 
 onboard = Pin("LED", Pin.OUT, value=0)
 
+# Set up pin for temperature sensor
+SensorPin = Pin(26, Pin.IN, Pin.PULL_UP)
+sensor = ds18x20.DS18X20(onewire.OneWire(SensorPin))
+roms = sensor.scan()
+
 # Global values
+gc_text = ''
 DST = True  # daylight time in effect
 DATAFILENAME = 'data.txt'
+LOGFILENAME = 'log.txt'
 ssid = secrets['ssid']
 password = secrets['wifi_password']
-lat = secrets['lat']
-long = secrets['long']
 tz_offset = secrets['tz_offset']
 if DST:
     tz_offset += 1
 
-# URLs to fetch from
-SUNSET_URL = "http://api.sunrise-sunset.org/json?lat=%f&lng=%f&formatted=0"\
-    % (lat, long)
-LIGHTS_ON_URL = "http://192.168.1.54/control?cmd=GPIO,12,1"
-LIGHTS_OFF_URL = "http://192.168.1.54/control?cmd=GPIO,12,0"
-
-# Default values for sunset time
-H = 23
-M = 0
-S = 0
-
 html = """<!DOCTYPE html>
 <html>
-    <head> <title>Lights Controller</title> </head>
-    <body> <h1>Carriage Lights Controller</h1>
+    <head> <title>Garage Temperature</title> </head>
+    <body> <h1>Garage Temperature</h1>
+        <h3>%s</h3>
         <pre>%s</pre>
     </body>
 </html>
@@ -60,41 +57,6 @@ def record(line):
     line += '\n'
     with open(DATAFILENAME, 'a') as file:
         file.write(line)
-
-def get_sunset_time():
-    """Get (UTC) time of today's sunset. return (H, M, S)"""
-    try:
-        response = urequests.get(SUNSET_URL)
-        data = response.json()
-        utc_sunset_str = data['results']['sunset']
-        date_str, time_str = utc_sunset_str.split('T')
-        utc_hr_str, m_str, s_str, *rest = time_str.split(':')
-        H = int(utc_hr_str)
-        M = int(m_str)
-        S = int(s_str.split('+')[0])
-        return (H, M, S)
-    except Exception as e:
-        record(repr(e))
-
-def lights_on():
-    ok = False
-    try:
-        r = urequests.get(LIGHTS_ON_URL)
-        record(r.text)
-        ok = True
-    except Exception as e:
-        record(str(e))
-    return ok
-
-def lights_off():
-    ok = False
-    try:
-        r = urequests.get(LIGHTS_OFF_URL)
-        record(r.text)
-        ok = True
-    except Exception as e:
-        record(str(e))
-    return ok
 
 wlan = network.WLAN(network.STA_IF)
 
@@ -126,11 +88,18 @@ async def serve_client(reader, writer):
     while await reader.readline() != b"\r\n":
         pass
 
-    file = open(DATAFILENAME)
-    data = file.read()
-    file.close
+    if '/log' in request_line.split()[1]:
+        with open(LOGFILENAME) as file:
+            data = file.read()
+        heading = "Date, Low, High"
+    else:
+        with open(DATAFILENAME) as file:
+            data = file.read()
+        heading = "Append '/log' to URL to see log file"
 
-    response = html % data
+    data += gc_text
+
+    response = html % (heading, data)
     writer.write('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
     writer.write(response)
 
@@ -139,7 +108,7 @@ async def serve_client(reader, writer):
     print("Client disconnected")
 
 async def main():
-    global H, M, S
+    global gc_text
     print('Connecting to Network...')
     connect_to_network()
 
@@ -173,47 +142,46 @@ async def main():
         s = current_time[6]  # curr second
         
         
-        # Print UTC time on the hour
+        # Print time and temperature hourly
         if not m % 60:
-            lh = h + tz_offset  # local hour
-            if lh < 0:
-                lh += 24
-            record("%s:%s:%s (UTC); %s:%s:%s (Local)" % (h, m, s, lh, m, s))
-            
-            print('free:', str(gc.mem_free()))
-            print('info (gc):', str(gc.mem_alloc()))
-            print('info:', str(micropython.mem_info()))
-            gc.collect()
+            try:
+                sensor.convert_temp()
+                await asyncio.sleep(2)
+                for rom in roms:
+                    temp = round(sensor.read_temp(rom),1)
+                fahr = temp * 9/5 + 32
+                lh = h + tz_offset  # local hour
+                if lh < 0:
+                    lh += 24
+                record(f"{fahr:.1f} F @ {lh:02}:{m:02}")
+                
+                gc_text = 'free: ' + str(gc.mem_free()) + '\n'
+                gc.collect()
+            except Exception as e:
+                record(e)
         
-        # At 4:59 AM (UTC) purge data file
+        # At 4:59 AM (UTC)
         if h == 4 and m == 59:
+            
+            # Find high and low values from previous day
+            with open(DATAFILENAME) as f:
+                lines = f.readlines()
+            yesterdate = lines[0].split()[-1].strip()
+            lines = [line for line in lines if line[0].isdigit()]
+            lines.sort()
+            low = lines[0].strip()
+            high = lines[-1].strip()
+            
+            # Log high and low values from previous day
+            logline = f'{yesterdate}, {low}, {high}\n'
+            with open(LOGFILENAME, 'a') as f:
+                f.write(logline)
+            
+            # Start a new data file for today
             with open(DATAFILENAME, 'w') as file:
                 file.write('Date: %d/%d/%d\n' % (mo, d, y))
-                file.write('Sunset yesterday @ %s:%s:%s\n' % (H, M, S))
+                file.write('Temp F @ Time\n')
         
-        # At 22:0:0 (UTC), get time of today's sunset
-        if h == 22 and m == 0:
-            H, M, S = get_sunset_time()
-            LH = H + tz_offset
-            record("Sunset today at %s:%s:%s local time" % (LH, M, S))
-        
-        # At sunset, turn on lights
-        if h == H and m == M:
-            record("Turning lights on")
-            for attempt in range(3):
-                if lights_on():
-                    break
-                await asyncio.sleep(5)
-
-        # At 9:01 PM local time, turn lights off
-        utc_hour = local_hour_to_utc_hour(9 + 12)
-        if h == utc_hour and m == 1:
-            record("Turning lights off")
-            for attempt in range(3):
-                if lights_off():
-                    break
-                await asyncio.sleep(5)
-
         # Flash LED
         for _ in range(3):
             onboard.on()
