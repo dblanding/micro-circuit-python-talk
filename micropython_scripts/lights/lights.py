@@ -10,7 +10,6 @@ import network
 from ntptime import settime
 import time
 import urequests
-import _thread
 from secrets import secrets
 import uasyncio as asyncio
 import socket
@@ -78,22 +77,18 @@ def get_sunset_time():
 
 def lights_on():
     ok = False
-    try:
-        r = urequests.get(LIGHTS_ON_URL)
-        record(r.text)
-        ok = True
-    except Exception as e:
-        record(str(e))
+    r = urequests.get(LIGHTS_ON_URL)
+    record(r.text)
+    ok = True
+    record(str(e))
     return ok
 
 def lights_off():
     ok = False
-    try:
-        r = urequests.get(LIGHTS_OFF_URL)
-        record(r.text)
-        ok = True
-    except Exception as e:
-        record(str(e))
+    r = urequests.get(LIGHTS_OFF_URL)
+    record(r.text)
+    ok = True
+    record(str(e))
     return ok
 
 wlan = network.WLAN(network.STA_IF)
@@ -193,26 +188,35 @@ async def main():
         
         # At 22:0:0 (UTC), get time of today's sunset
         if h == 22 and m == 0:
-            H, M, S = get_sunset_time()
-            LH = H + tz_offset
-            record("Sunset today at %s:%s:%s local time" % (LH, M, S))
+            try:
+                H, M, S = get_sunset_time()
+                LH = H + tz_offset
+                record("Sunset today at %s:%s:%s local time" % (LH, M, S))
+            except Exception as e:
+                record('%s:%s:%s ' % (h, m, s), repr(e))
         
         # At sunset, turn on lights
         if h == H and m == M:
             record("Turning lights on")
-            for attempt in range(3):
-                if lights_on():
-                    break
-                await asyncio.sleep(5)
+            try:
+                for attempt in range(3):
+                    if lights_on():
+                        break
+                    await asyncio.sleep(5)
+            except Exception as e:
+                record('%s:%s:%s ' % (h, m, s), repr(e))
 
         # At 9:01 PM local time, turn lights off
         utc_hour = local_hour_to_utc_hour(9 + 12)
         if h == utc_hour and m == 1:
             record("Turning lights off")
-            for attempt in range(3):
-                if lights_off():
-                    break
-                await asyncio.sleep(5)
+            try:
+                for attempt in range(3):
+                    if lights_off():
+                        break
+                    await asyncio.sleep(5)
+            except Exception as e:
+                record('%s:%s:%s ' % (h, m, s), repr(e))
 
         # Flash LED
         for _ in range(3):
