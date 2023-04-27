@@ -12,7 +12,6 @@ import time
 import urequests
 from secrets import secrets
 import uasyncio as asyncio
-import socket
 
 onboard = Pin("LED", Pin.OUT, value=0)
 
@@ -52,6 +51,12 @@ def local_hour_to_utc_hour(loc_h):
     if utc_h > 23:
         utc_h -= 24
     return utc_h
+
+def utc_hour_to_local_hour(utc_h):
+    loc_h = utc_h + tz_offset
+    if loc_h < 1:
+        loc_h += 24
+    return loc_h
 
 def record(line):
     """Combined print and append to data file."""
@@ -144,13 +149,13 @@ async def main():
     print("Initial (rtc) ", local_time)
 
     # Set RTC to (utc) time from ntp server
-    while rtc.datetime()[0] == 2021:
-        try:
-            settime()
-        except OSError as e:
-            print('OSError', e, 'while trying to set rtc')
-        print('setting rtc to UTC...')
-        time.sleep(1)
+    # while rtc.datetime()[0] == 2021:
+    try:
+        settime()
+    except OSError as e:
+        print('OSError', e, 'while trying to set rtc')
+    print('setting rtc to UTC...')
+    time.sleep(1)
 
     gm_time = rtc.datetime()
     print('Reset to (UTC)', gm_time)
@@ -170,10 +175,8 @@ async def main():
         
         # Print UTC time on the hour
         if not m % 60:
-            lh = h + tz_offset  # local hour
-            if lh < 0:
-                lh += 24
-            record("%s:%s:%s (UTC); %s:%s:%s (Local)" % (h, m, s, lh, m, s))
+            lh = utc_hour_to_local_hour(h)
+            record("%d:%02d:%02d (UTC); %d:%02d:%02d (Local)" % (h, m, s, lh, m, s))
             
             print('free:', str(gc.mem_free()))
             print('info (gc):', str(gc.mem_alloc()))
@@ -184,39 +187,33 @@ async def main():
         if h == 4 and m == 59:
             with open(DATAFILENAME, 'w') as file:
                 file.write('Date: %d/%d/%d\n' % (mo, d, y))
-                file.write('Sunset yesterday @ %s:%s:%s\n' % (H, M, S))
+                file.write('Sunset yesterday @ %d:%02d:%02d\n' % (H, M, S))
         
         # At 22:0:0 (UTC), get time of today's sunset
         if h == 22 and m == 0:
             try:
                 H, M, S = get_sunset_time()
-                LH = H + tz_offset
-                record("Sunset today at %s:%s:%s local time" % (LH, M, S))
+                LH = utc_hour_to_local_hour(H)
+                record("Sunset today at %d:%02d:%02d local time" % (LH, M, S))
             except Exception as e:
-                record('%s:%s:%s ' % (h, m, s), repr(e))
+                record('Error: %s at %d:%02d:%02d' % (e, h, m, s))
         
         # At sunset, turn on lights
         if h == H and m == M:
             record("Turning lights on")
             try:
-                for attempt in range(3):
-                    if lights_on():
-                        break
-                    await asyncio.sleep(5)
+                lights_on()
             except Exception as e:
-                record('%s:%s:%s ' % (h, m, s), repr(e))
+                record("Error %s while turning lights on" % e)
 
         # At 9:01 PM local time, turn lights off
         utc_hour = local_hour_to_utc_hour(9 + 12)
         if h == utc_hour and m == 1:
             record("Turning lights off")
             try:
-                for attempt in range(3):
-                    if lights_off():
-                        break
-                    await asyncio.sleep(5)
+                lights_off()
             except Exception as e:
-                record('%s:%s:%s ' % (h, m, s), repr(e))
+                record("Error %s while turning lights off" % e)
 
         # Flash LED
         for _ in range(3):
