@@ -158,7 +158,7 @@ async def main():
                 gc_text = 'free: ' + str(gc.mem_free()) + '\n'
                 gc.collect()
             except Exception as e:
-                record(e)
+                record(repr(e))
         
         # At 4:59 AM (UTC)
         if h == 4 and m == 59:
