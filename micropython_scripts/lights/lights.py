@@ -85,7 +85,6 @@ def lights_on():
     r = urequests.get(LIGHTS_ON_URL)
     record(r.text)
     ok = True
-    record(str(e))
     return ok
 
 def lights_off():
@@ -93,7 +92,6 @@ def lights_off():
     r = urequests.get(LIGHTS_OFF_URL)
     record(r.text)
     ok = True
-    record(str(e))
     return ok
 
 wlan = network.WLAN(network.STA_IF)
@@ -149,13 +147,13 @@ async def main():
     print("Initial (rtc) ", local_time)
 
     # Set RTC to (utc) time from ntp server
-    # while rtc.datetime()[0] == 2021:
-    try:
-        settime()
-    except OSError as e:
-        print('OSError', e, 'while trying to set rtc')
-    print('setting rtc to UTC...')
-    time.sleep(1)
+    while rtc.datetime()[0] == 2021:
+        try:
+            settime()
+        except OSError as e:
+            print('OSError', e, 'while trying to set rtc')
+        print('setting rtc to UTC...')
+        time.sleep(1)
 
     gm_time = rtc.datetime()
     print('Reset to (UTC)', gm_time)
@@ -187,7 +185,7 @@ async def main():
         if h == 4 and m == 59:
             with open(DATAFILENAME, 'w') as file:
                 file.write('Date: %d/%d/%d\n' % (mo, d, y))
-                file.write('Sunset yesterday @ %d:%02d:%02d\n' % (H, M, S))
+                file.write('Sunset yesterday @ %d:%02d:%02d (UTC)\n' % (H, M, S))
         
         # At 22:0:0 (UTC), get time of today's sunset
         if h == 22 and m == 0:
@@ -201,19 +199,15 @@ async def main():
         # At sunset, turn on lights
         if h == H and m == M:
             record("Turning lights on")
-            try:
-                lights_on()
-            except Exception as e:
-                record("Error %s while turning lights on" % e)
+            if not lights_on():
+                record("Failed to turn lights on")
 
         # At 9:01 PM local time, turn lights off
         utc_hour = local_hour_to_utc_hour(9 + 12)
         if h == utc_hour and m == 1:
             record("Turning lights off")
-            try:
-                lights_off()
-            except Exception as e:
-                record("Error %s while turning lights off" % e)
+            if not lights_off():
+                record("Failed to turn lights off")
 
         # Flash LED
         for _ in range(3):
