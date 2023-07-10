@@ -88,31 +88,34 @@ def connect_to_network():
         print('ip = ' + status[0])
 
 async def serve_client(reader, writer):
-    print("Client connected")
-    request_line = await reader.readline()
-    print("Request:", request_line)
-    # We are not interested in HTTP request headers, skip them
-    while await reader.readline() != b"\r\n":
-        pass
+    try:
+        print("Client connected")
+        request_line = await reader.readline()
+        print("Request:", request_line)
+        # We are not interested in HTTP request headers, skip them
+        while await reader.readline() != b"\r\n":
+            pass
 
-    if '/log' in request_line.split()[1]:
-        with open(LOGFILENAME) as file:
-            data = file.read()
-        heading = "Date, Low, High"
-    else:
-        with open(DATAFILENAME) as file:
-            data = file.read()
-        heading = "Append '/log' to URL to see log file"
+        if '/log' in request_line.split()[1]:
+            with open(LOGFILENAME) as file:
+                data = file.read()
+            heading = "Date, Low, High"
+        else:
+            with open(DATAFILENAME) as file:
+                data = file.read()
+            heading = "Append '/log' to URL to see log file"
 
-    data += gc_text
+        data += gc_text
 
-    response = html % (heading, data)
-    writer.write('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
-    writer.write(response)
+        response = html % (heading, data)
+        writer.write('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
+        writer.write(response)
 
-    await writer.drain()
-    await writer.wait_closed()
-    print("Client disconnected")
+        await writer.drain()
+        await writer.wait_closed()
+        print("Client disconnected")
+    except Exception as e:
+        logger.error("serve_client error: " + str(e))
 
 async def main():
     global gc_text
@@ -191,7 +194,7 @@ async def main():
                     file.write('Temp F @ Time\n')
 
         except Exception as e:
-            logger.error(str(e))
+            logger.error("main loop error: " + str(e))
 
         # Flash LED
         onboard.on()
