@@ -104,6 +104,7 @@ def connect_to_network():
     max_wait = 10
     while max_wait > 0:
         if wlan.status() < 0 or wlan.status() >= 3:
+            print("wlan.status =", wlan.status())
             break
         max_wait -= 1
         print('waiting for connection...')
@@ -115,6 +116,13 @@ def connect_to_network():
         print('connected')
         status = wlan.ifconfig()
         print('ip = ' + status[0])
+
+def network_connection_OK():
+    if not wlan.status() == 3:
+        record("Network connection failed.")
+        return False
+    else:
+        return True
 
 async def serve_client(reader, writer):
     print("Client connected")
@@ -169,26 +177,29 @@ async def main():
         h = current_time[4]  # curr hour (UTC)
         m = current_time[5]  # curr minute
         s = current_time[6]  # curr second
-        
-        
+
+
         # Print UTC time on the hour
-        if not m % 60:
+        if not s and not m % 60:
             lh = utc_hour_to_local_hour(h)
             record("%d:%02d:%02d (UTC); %d:%02d:%02d (Local)" % (h, m, s, lh, m, s))
-            
+
             print('free:', str(gc.mem_free()))
             print('info (gc):', str(gc.mem_alloc()))
             print('info:', str(micropython.mem_info()))
             gc.collect()
-        
-        # At 4:59 AM (UTC) purge data file
-        if h == 4 and m == 59:
+
+        # At 11:59 AM (UTC) purge data file
+        if h == 11 and m == 59 and s == 0:
             with open(DATAFILENAME, 'w') as file:
                 file.write('Date: %d/%d/%d\n' % (mo, d, y))
                 file.write('Sunset yesterday @ %d:%02d:%02d (UTC)\n' % (H, M, S))
-        
+
         # At 22:0:0 (UTC), get time of today's sunset
-        if h == 22 and m == 0:
+        if h == 22 and m == 0 and s == 0:
+            record("Getting time of today's sunset")
+            if not network_connection_OK():
+                connect()
             try:
                 H, M, S = get_sunset_time()
                 LH = utc_hour_to_local_hour(H)
@@ -196,32 +207,32 @@ async def main():
             except Exception as e:
                 record('Error: %s at %d:%02d:%02d' % (e, h, m, s))
         
-        # At sunset, turn on lights
-        if h == H and m == M:
+        # At sunset, turn lights on
+        if h == H and m == M  and s == 0:
             record("Turning lights on")
-            if not lights_on():
-                record("Failed to turn lights on")
+            if not network_connection_OK():
+                connect()
+            try:
+                lights_on()
+            except Exception as e:
+                record(repr(e))
 
         # At 9:01 PM local time, turn lights off
         utc_hour = local_hour_to_utc_hour(9 + 12)
-        if h == utc_hour and m == 1:
+        if h == utc_hour and m == 1 and s == 0:
             record("Turning lights off")
-            if not lights_off():
-                record("Failed to turn lights off")
-
-        # Flash LED
-        for _ in range(3):
-            onboard.on()
-            await asyncio.sleep(0.1)
-            onboard.off()
-            await asyncio.sleep(0.1)
+            if not network_connection_OK():
+                connect()
+            try:
+                lights_off()
+            except Exception as e:
+                record(repr(e))
 
         onboard.on()
         # print("heartbeat")
-        await asyncio.sleep(0.25)
+        await asyncio.sleep(0.1)
         onboard.off()
-        # Stay on sync with seconds == 0
-        await asyncio.sleep(60 - s)
+        await asyncio.sleep(0.9)
 
 try:
     asyncio.run(main())
