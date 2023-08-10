@@ -1,11 +1,8 @@
 """
-Measure room temperature using Dallas 18B20
-Make daily data available via webserver
-Log daily highs and lows
+Measure drift of onboard RTC by checking
+NTP time periodically.
 """
 
-import onewire
-import ds18x20
 import gc
 import logging
 import micropython
@@ -26,11 +23,6 @@ logger.setLevel(logging.INFO)
 fh = logging.FileHandler('errorlog.txt')
 logger.addHandler(fh)
 
-# Set up pin for temperature sensor
-SensorPin = Pin(26, Pin.IN, Pin.PULL_UP)
-sensor = ds18x20.DS18X20(onewire.OneWire(SensorPin))
-roms = sensor.scan()
-
 # Global values
 gc_text = ''
 DST = True  # daylight time in effect
@@ -44,9 +36,8 @@ if DST:
 
 html = """<!DOCTYPE html>
 <html>
-    <head> <title>Garage Temperature</title> </head>
-    <body> <h1>Garage Temperature</h1>
-        <h3>%s</h3>
+    <head> <title>RTC Drift</title> </head>
+    <body> <h1>RTC Drift</h1>
         <pre>%s</pre>
     </body>
 </html>
@@ -96,18 +87,12 @@ async def serve_client(reader, writer):
         while await reader.readline() != b"\r\n":
             pass
 
-        if '/log' in request_line.split()[1]:
-            with open(LOGFILENAME) as file:
-                data = file.read()
-            heading = "Date, Low, High"
-        else:
-            with open(DATAFILENAME) as file:
-                data = file.read()
-            heading = "Append '/log' to URL to see log file"
+        with open(DATAFILENAME) as file:
+            data = file.read()
 
         data += gc_text
 
-        response = html % (heading, data)
+        response = html % (data)
         writer.write('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
         writer.write(response)
 
@@ -148,23 +133,19 @@ async def main():
             y = current_time[0]  # curr year
             mo = current_time[1] # current month
             d = current_time[2]  # current day
+            dow = current_time[3]  # current day 0f week (Sunday=6)
             h = current_time[4]  # curr hour (UTC)
             m = current_time[5]  # curr minute
             s = current_time[6]  # curr second
             
             
-            # Print time and temperature every 30 min
-            if s in (1, 2) and not m % 30:
+            # Print time every hour
+            if not s and not m % 60:
                 try:
-                    sensor.convert_temp()
-                    await asyncio.sleep(2)
-                    for rom in roms:
-                        temp = round(sensor.read_temp(rom),1)
-                    fahr = temp * 9/5 + 32
                     lh = h + tz_offset  # local hour
                     if lh < 0:
                         lh += 24
-                    record(f"{fahr:.1f} F @ {lh:02}:{m:02}")
+                    record(f"{lh:02}:{m:02}")
                     
                     gc_text = 'free: ' + str(gc.mem_free()) + '\n'
                     gc.collect()
@@ -174,24 +155,14 @@ async def main():
             # At 4:59 AM (UTC)
             if h == 4 and m == 59:
                 
-                # Find high and low values from previous day
-                with open(DATAFILENAME) as f:
-                    lines = f.readlines()
-                yesterdate = lines[0].split()[-1].strip()
-                lines = [float(line) for line in lines if line[0].isdigit()]
-                lines.sort()
-                low = lines[0].strip()
-                high = lines[-1].strip()
-                
-                # Log high and low values from previous day
-                logline = f'{yesterdate}, {low}, {high}\n'
-                with open(LOGFILENAME, 'a') as f:
-                    f.write(logline)
-                
                 # Start a new data file for today
                 with open(DATAFILENAME, 'w') as file:
                     file.write('Date: %d/%d/%d\n' % (mo, d, y))
-                    file.write('Temp F @ Time\n')
+                
+                if dow == 0:  # Monday
+                    settime()
+                    drift = s - rtc.datetime()[6]
+                    record('Drift = %s seconds per week' % drift)
 
         except Exception as e:
             logger.error("main loop error: " + str(e))
