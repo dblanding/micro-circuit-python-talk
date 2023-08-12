@@ -177,9 +177,23 @@ async def main():
                 # Find high and low values from previous day
                 with open(DATAFILENAME) as f:
                     lines = f.readlines()
+
+                # first line is yesterday's date
                 yesterdate = lines[0].split()[-1].strip()
-                lines = [float(line) for line in lines if line[0].isdigit()]
-                lines.sort()
+
+                # collect all lines starting with temperature value
+                lines = [line for line in lines if line[0].isdigit()]
+
+                # define a key to sort by float() of first word in string
+                def float_first(element):
+                    """return float(temp) for element: 'temp @ time'."""
+                    temp, *rest = element.split()
+                    return float(temp)
+
+                # sort by temperature
+                # must convert string value of temperature to float
+                # so temperatures over 100 will sort higher than 99
+                lines.sort(key=float_first)
                 low = lines[0].strip()
                 high = lines[-1].strip()
                 
