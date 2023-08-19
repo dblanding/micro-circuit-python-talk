@@ -199,7 +199,7 @@ async def main():
         if h == 22 and m == 0 and s == 0:
             record("Getting time of today's sunset")
             if not network_connection_OK():
-                connect()
+                connect_to_network()
             try:
                 H, M, S = get_sunset_time()
                 LH = utc_hour_to_local_hour(H)
@@ -211,7 +211,7 @@ async def main():
         if h == H and m == M  and s == 0:
             record("Turning lights on")
             if not network_connection_OK():
-                connect()
+                connect_to_network()
             try:
                 lights_on()
             except Exception as e:
@@ -222,7 +222,7 @@ async def main():
         if h == utc_hour and m == 1 and s == 0:
             record("Turning lights off")
             if not network_connection_OK():
-                connect()
+                connect_to_network()
             try:
                 lights_off()
             except Exception as e:
