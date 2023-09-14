@@ -1,0 +1,39 @@
+Date: 9/7/2023
+Sunset yesterday @ 23:45:23 (UTC)
+12:00:00 (UTC); 8:00:00 (Local)
+13:00:00 (UTC); 9:00:00 (Local)
+14:00:00 (UTC); 10:00:00 (Local)
+15:00:00 (UTC); 11:00:00 (Local)
+16:00:00 (UTC); 12:00:00 (Local)
+17:00:00 (UTC); 13:00:00 (Local)
+18:00:00 (UTC); 14:00:00 (Local)
+19:00:00 (UTC); 15:00:00 (Local)
+20:00:00 (UTC); 16:00:00 (Local)
+21:00:00 (UTC); 17:00:00 (Local)
+22:00:00 (UTC); 18:00:00 (Local)
+Getting time of today's sunset
+Sunset today at 19:44:12 local time
+23:00:00 (UTC); 19:00:00 (Local)
+Turning lights on
+{
+"log": "GPIO 12 Set to 1",
+"plugin": 1,
+"pin": 12,
+"mode": "output",
+"state": 1
+}
+
+0:00:00 (UTC); 20:00:00 (Local)
+1:00:00 (UTC); 21:00:00 (Local)
+Turning lights off
+ValueError('HTTP error: BadStatusLine:\n[]',)
+2:00:00 (UTC); 22:00:00 (Local)
+3:00:00 (UTC); 23:00:00 (Local)
+4:00:00 (UTC); 24:00:00 (Local)
+5:00:00 (UTC); 1:00:00 (Local)
+6:00:00 (UTC); 2:00:00 (Local)
+7:00:00 (UTC); 3:00:00 (Local)
+8:00:00 (UTC); 4:00:00 (Local)
+9:00:00 (UTC); 5:00:00 (Local)
+10:00:00 (UTC); 6:00:00 (Local)
+

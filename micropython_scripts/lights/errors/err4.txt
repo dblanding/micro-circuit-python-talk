@@ -1,0 +1,35 @@
+Carriage Lights Controller
+
+Date: 9/12/2023
+Sunset yesterday @ 23:39:25 (UTC)
+12:00:00 (UTC); 8:00:00 (Local)
+13:00:00 (UTC); 9:00:00 (Local)
+14:00:00 (UTC); 10:00:00 (Local)
+15:00:00 (UTC); 11:00:00 (Local)
+16:00:00 (UTC); 12:00:00 (Local)
+17:00:00 (UTC); 13:00:00 (Local)
+18:00:00 (UTC); 14:00:00 (Local)
+19:00:00 (UTC); 15:00:00 (Local)
+20:00:00 (UTC); 16:00:00 (Local)
+21:00:00 (UTC); 17:00:00 (Local)
+22:00:00 (UTC); 18:00:00 (Local)
+Getting time of today's sunset
+ValueError('syntax error in JSON',)
+Error: 'NoneType' object isn't iterable at 22:00:00
+23:00:00 (UTC); 19:00:00 (Local)
+Turning lights on
+OSError(103,)
+0:00:00 (UTC); 20:00:00 (Local)
+1:00:00 (UTC); 21:00:00 (Local)
+Turning lights off
+OSError(103,)
+2:00:00 (UTC); 22:00:00 (Local)
+3:00:00 (UTC); 23:00:00 (Local)
+4:00:00 (UTC); 24:00:00 (Local)
+5:00:00 (UTC); 1:00:00 (Local)
+6:00:00 (UTC); 2:00:00 (Local)
+7:00:00 (UTC); 3:00:00 (Local)
+8:00:00 (UTC); 4:00:00 (Local)
+power-up @ (2023, 9, 13, 2, 8, 54, 13, 0) (UTC)
+
+

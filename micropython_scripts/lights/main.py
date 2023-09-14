@@ -32,11 +32,6 @@ SUNSET_URL = "http://api.sunrise-sunset.org/json?lat=%f&lng=%f&formatted=0"\
 LIGHTS_ON_URL = "http://192.168.1.54/control?cmd=GPIO,12,1"
 LIGHTS_OFF_URL = "http://192.168.1.54/control?cmd=GPIO,12,0"
 
-# Default values for sunset time
-H = 23
-M = 0
-S = 0
-
 html = """<!DOCTYPE html>
 <html>
     <head> <title>Lights Controller</title> </head>
@@ -54,7 +49,7 @@ def local_hour_to_utc_hour(loc_h):
 
 def utc_hour_to_local_hour(utc_h):
     loc_h = utc_h + tz_offset
-    if loc_h < 1:
+    if loc_h < 0:
         loc_h += 24
     return loc_h
 
@@ -145,7 +140,6 @@ async def serve_client(reader, writer):
     print("Client disconnected")
 
 async def main():
-    global H, M, S
     print('Connecting to Network...')
     connect_to_network()
 
@@ -169,6 +163,10 @@ async def main():
 
     print('Setting up webserver...')
     asyncio.create_task(asyncio.start_server(serve_client, "0.0.0.0", 80))
+
+    # Get sunset time
+    H, M, S = get_sunset_time()
+
     while True:
         current_time = rtc.datetime()
         y = current_time[0]  # curr year
