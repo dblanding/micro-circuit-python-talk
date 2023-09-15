@@ -67,7 +67,7 @@ def record(line):
 
 wlan = network.WLAN(network.STA_IF)
 
-def connect_to_network():
+def connect():
     wlan.active(True)
     wlan.config(pm = 0xa11140) # Disable power-save mode
     wlan.connect(ssid, password)
@@ -75,6 +75,7 @@ def connect_to_network():
     max_wait = 10
     while max_wait > 0:
         if wlan.status() < 0 or wlan.status() >= 3:
+            print("wlan.status =", wlan.status())
             break
         max_wait -= 1
         print('waiting for connection...')
@@ -86,6 +87,19 @@ def connect_to_network():
         print('connected')
         status = wlan.ifconfig()
         print('ip = ' + status[0])
+
+def network_connection_OK():
+    if not wlan.status() == 3:
+        return False
+    else:
+        return True
+
+def connect_to_network():
+    try:
+        connect()
+    except Exception as e:
+        print(e)
+        connect_to_network()
 
 async def serve_client(reader, writer):
     try:
@@ -143,6 +157,9 @@ async def main():
     print('Setting up webserver...')
     asyncio.create_task(asyncio.start_server(serve_client, "0.0.0.0", 80))
     while True:
+        if not network_connection_OK():
+            connect_to_network()
+
         try:
             current_time = rtc.datetime()
             y = current_time[0]  # curr year
