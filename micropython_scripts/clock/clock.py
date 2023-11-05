@@ -138,7 +138,7 @@ async def main():
             snsr_high = True
             led.off()
 
-        # Decide if the electro-magnet should be energized
+        # Once every 66 ticks
         if count == 66:
             current_time = rtc.datetime()
             print(str(current_time))
@@ -146,7 +146,18 @@ async def main():
             m = current_time[5]  # curr minute
             s = current_time[6]  # curr second
             str_curr_time = '%s:%s:%s (UTC)' % (h, m, s)
+            
+            # reset counter
             count = 0
+            
+            # set time to NTP server once daily
+            if h == 1 and m == 0:
+                try:
+                    settime()
+                except OSError as e:
+                    print('OSError', e, 'while trying to set rtc')
+            
+            # Decide if the electro-magnet should be energized
             if s > 30:
                 em.on()
                 print("Electro-magnet ON")
@@ -158,8 +169,8 @@ async def main():
             if len(data) > MAXLEN:
                 data.pop(0)
             
-            # collect garbage every 30 minutes
-            if m == 0 or m == 30:
+            # collect garbage hourly
+            if m == 0:
                 gc_text = 'free: ' + str(gc.mem_free()) + '\n'
                 gc.collect()
 
