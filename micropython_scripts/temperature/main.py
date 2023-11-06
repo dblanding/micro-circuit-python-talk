@@ -31,16 +31,18 @@ SensorPin = Pin(26, Pin.IN, Pin.PULL_UP)
 sensor = ds18x20.DS18X20(onewire.OneWire(SensorPin))
 roms = sensor.scan()
 
+# Set up DST pin
+# Jumper to ground when DST is in effect
+DST_pin = Pin(17, Pin.IN, Pin.PULL_UP)
+
 # Global values
 gc_text = ''
-DST = True  # daylight time in effect
 DATAFILENAME = 'data.txt'
 LOGFILENAME = 'log.txt'
 ssid = secrets['ssid']
 password = secrets['wifi_password']
-tz_offset = secrets['tz_offset']
-if DST:
-    tz_offset += 1
+TZ_OFFSET = secrets['tz_offset']
+tz_offset = TZ_OFFSET
 
 html = """<!DOCTYPE html>
 <html>
@@ -132,7 +134,7 @@ async def serve_client(reader, writer):
         logger.error("serve_client error: " + str(e))
 
 async def main():
-    global gc_text
+    global gc_text, tz_offset
     print('Connecting to Network...')
     connect_to_network()
 
@@ -157,6 +159,13 @@ async def main():
     print('Setting up webserver...')
     asyncio.create_task(asyncio.start_server(serve_client, "0.0.0.0", 80))
     while True:
+
+        # check DST jumper (daylight savings time)
+        if DST_pin.value():
+            tz_offset = TZ_OFFSET
+        else:
+            tz_offset = TZ_OFFSET + 1
+
         if not network_connection_OK():
             connect_to_network()
 
