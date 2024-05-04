@@ -176,13 +176,36 @@ async def main():
                     lh = h + tz_offset  # local hour
                     if lh < 0:
                         lh += 24
-                    record(f" F @ {lh:02}:{m:02}")
+                    record(f"datapoint @ {lh:02}:{m:02}")
                     
                     gc_text = 'free: ' + str(gc.mem_free()) + '\n'
                     gc.collect()
                 except Exception as e:
                     record(repr(e))
-            
+
+            # At 5:01 AM (UTC)
+            if h == 4 and m == 10:
+                
+                # Read lines from previous day
+                with open(DATAFILENAME) as f:
+                    lines = f.readlines()
+
+                # first line is yesterday's date
+                yesterdate = lines[0].split()[-1].strip()
+
+                # cull all lines containing '@'
+                lines = [line
+                         for line in lines
+                         if '@' not in line]
+                
+                # Log lines from previous day
+                with open(LOGFILENAME, 'a') as f:
+                    for line in lines:
+                        f.write(line)
+                
+                # Start a new data file for today
+                with open(DATAFILENAME, 'w') as file:
+                    file.write('Date: %d/%d/%d\n' % (mo, d, y))
 
         except Exception as e:
             logger.error("main loop error: " + str(e))
