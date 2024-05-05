@@ -15,8 +15,6 @@ from secrets import secrets
 import uasyncio as asyncio
 import socket
 
-onboard = Pin("LED", Pin.OUT, value=0)
-
 # Global values
 gc_text = ''
 DATAFILENAME = 'data.txt'
@@ -32,6 +30,9 @@ logger = logging.getLogger('mylogger')
 logger.setLevel(logging.INFO)
 fh = logging.FileHandler(ERRORLOGFILENAME)
 logger.addHandler(fh)
+
+# Set up onboard led
+onboard = Pin("LED", Pin.OUT, value=0)
 
 # Set up DST pin
 # Jumper to ground when DST is in effect
@@ -97,7 +98,7 @@ async def serve_client(reader, writer):
         if '/log' in request_line.split()[1]:
             with open(LOGFILENAME) as file:
                 data = file.read()
-            heading = "Date"
+            heading = "Occurences"
         elif '/err' in request_line.split()[1]:
             with open(ERRORLOGFILENAME) as file:
                 data = file.read()
@@ -134,6 +135,7 @@ async def main():
     try:
         settime()
     except OSError as e:
+        logger.error("Error while trying ti set time: " + str(e))
         print('OSError', e, 'while trying to set rtc')
     print('setting rtc to UTC...')
     time.sleep(1)
@@ -146,7 +148,7 @@ async def main():
     asyncio.create_task(asyncio.start_server(serve_client, "0.0.0.0", 80))
     while True:
 
-        # check DST jumper (daylight savings time)
+        # Check for daylight savings time (set w/ jumper)
         if DST_pin.value():
             tz_offset = TZ_OFFSET
         else:
@@ -183,8 +185,8 @@ async def main():
                 except Exception as e:
                     record(repr(e))
 
-            # At 5:01 AM (UTC)
-            if h == 4 and m == 10:
+            # Once daily (during the wee hours)
+            if h == 2 and m == 10 and s == 1:
                 
                 # Read lines from previous day
                 with open(DATAFILENAME) as f:
