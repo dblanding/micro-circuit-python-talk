@@ -48,11 +48,26 @@ html = """<!DOCTYPE html>
 </html>
 """
 
+def sync_rtc_to_ntp():
+    """Sync RTC to (utc) time from ntp server."""
+    try:
+        settime()
+    except OSError as e:
+        logger.error("Error while trying to set time: " + str(e))
+        print('OSError', e, 'while trying to set rtc')
+    print('setting rtc to UTC...')
+
 def local_hour_to_utc_hour(loc_h):
     utc_h = loc_h - tz_offset
     if utc_h > 23:
         utc_h -= 24
     return utc_h
+
+def utc_hour_to_local_hour(utc_h):
+    loc_h = utc_h + tz_offset
+    if loc_h < 0:
+        loc_h += 24
+    return loc_h
 
 def record(line):
     """Combined print and append to data file."""
@@ -130,14 +145,8 @@ async def main():
     local_time = rtc.datetime()
     print("Initial (rtc) ", local_time)
 
-    # Set RTC to (utc) time from ntp server
-    # while rtc.datetime()[0] == 2021:
-    try:
-        settime()
-    except OSError as e:
-        logger.error("Error while trying ti set time: " + str(e))
-        print('OSError', e, 'while trying to set rtc')
-    print('setting rtc to UTC...')
+    # Sync RTC to ntp time server (utc)
+    sync_rtc_to_ntp()
     time.sleep(1)
 
     gm_time = rtc.datetime()
@@ -160,25 +169,29 @@ async def main():
             mo = current_time[1] # current month
             d = current_time[2]  # current day
             h = current_time[4]  # curr hour (UTC)
+            lh = utc_hour_to_local_hour(h) # (local)
             m = current_time[5]  # curr minute
             s = current_time[6]  # curr second
             
+            timestamp = f"{lh:02}:{m:02}:{s:02}"
+            
             # Test WiFi connection twice per minute
-            if s in (1, 31):
+            if s in (15, 45):
                 if not wlan.isconnected():
-                    record("WiFi not connected")
+                    record(f"{timestamp} WiFi not connected")
                     wlan.disconnect()
                     record("Attempting to re-connect")
                     success = connect()
-                    record(f"Successful reconnection: {success}")
+                    record(f"Re-connected: {success}")
+                    # After successful reconnection, sync rtc to ntp
+                    if success:
+                        sync_rtc_to_ntp()
+                        time.sleep(1)
             
-            # Print time every 30 min
-            if s in (2,) and not m % 30:
+            # Print time on 30 min intervals
+            if s in (1,) and not m % 30:
                 try:
-                    lh = h + tz_offset  # local hour
-                    if lh < 0:
-                        lh += 24
-                    record(f"datapoint @ {lh:02}:{m:02}")
+                    record(f"datapoint @ {timestamp}")
                     
                     gc_text = 'free: ' + str(gc.mem_free()) + '\n'
                     gc.collect()
@@ -186,7 +199,7 @@ async def main():
                     record(repr(e))
 
             # Once daily (during the wee hours)
-            if h == 2 and m == 10 and s == 1:
+            if lh == 2 and m == 10 and s == 1:
                 
                 # Read lines from previous day
                 with open(DATAFILENAME) as f:
