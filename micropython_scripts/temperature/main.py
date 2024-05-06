@@ -18,31 +18,33 @@ from secrets import secrets
 import uasyncio as asyncio
 import socket
 
-onboard = Pin("LED", Pin.OUT, value=0)
+# Global values
+gc_text = ''
+DATAFILENAME = 'data.txt'
+LOGFILENAME = 'log.txt'
+ERRORLOGFILENAME = 'errorlog.txt'
+ssid = secrets['ssid']
+password = secrets['wifi_password']
+TZ_OFFSET = secrets['tz_offset']
+tz_offset = TZ_OFFSET
 
 # Set up logging
 logger = logging.getLogger('mylogger')
 logger.setLevel(logging.INFO)
-fh = logging.FileHandler('errorlog.txt')
+fh = logging.FileHandler(ERRORLOGFILENAME)
 logger.addHandler(fh)
 
-# Set up pin for temperature sensor
-SensorPin = Pin(26, Pin.IN, Pin.PULL_UP)
-sensor = ds18x20.DS18X20(onewire.OneWire(SensorPin))
-roms = sensor.scan()
+# Set up onboard led
+onboard = Pin("LED", Pin.OUT, value=0)
 
 # Set up DST pin
 # Jumper to ground when DST is in effect
 DST_pin = Pin(17, Pin.IN, Pin.PULL_UP)
 
-# Global values
-gc_text = ''
-DATAFILENAME = 'data.txt'
-LOGFILENAME = 'log.txt'
-ssid = secrets['ssid']
-password = secrets['wifi_password']
-TZ_OFFSET = secrets['tz_offset']
-tz_offset = TZ_OFFSET
+# Set up pin for temperature sensor
+SensorPin = Pin(26, Pin.IN, Pin.PULL_UP)
+sensor = ds18x20.DS18X20(onewire.OneWire(SensorPin))
+roms = sensor.scan()
 
 html = """<!DOCTYPE html>
 <html>
@@ -54,11 +56,26 @@ html = """<!DOCTYPE html>
 </html>
 """
 
+def sync_rtc_to_ntp():
+    """Sync RTC to (utc) time from ntp server."""
+    try:
+        settime()
+    except OSError as e:
+        logger.error("Error while trying to set time: " + str(e))
+        print('OSError', e, 'while trying to set rtc')
+    print('setting rtc to UTC...')
+
 def local_hour_to_utc_hour(loc_h):
     utc_h = loc_h - tz_offset
     if utc_h > 23:
         utc_h -= 24
     return utc_h
+
+def utc_hour_to_local_hour(utc_h):
+    loc_h = utc_h + tz_offset
+    if loc_h < 0:
+        loc_h += 24
+    return loc_h
 
 def record(line):
     """Combined print and append to data file."""
@@ -83,25 +100,13 @@ def connect():
         print('waiting for connection...')
         time.sleep(1)
 
-    if wlan.status() != 3:
-        raise RuntimeError('network connection failed')
+    if wlan.isconnected():
+        return False
     else:
         print('connected')
         status = wlan.ifconfig()
         print('ip = ' + status[0])
-
-def network_connection_OK():
-    if not wlan.status() == 3:
-        return False
-    else:
         return True
-
-def connect_to_network():
-    try:
-        connect()
-    except Exception as e:
-        print(e)
-        connect_to_network()
 
 async def serve_client(reader, writer):
     try:
@@ -116,6 +121,10 @@ async def serve_client(reader, writer):
             with open(LOGFILENAME) as file:
                 data = file.read()
             heading = "Date, Low, High"
+        elif '/err' in request_line.split()[1]:
+            with open(ERRORLOGFILENAME) as file:
+                data = file.read()
+            heading = "ERRORS"
         else:
             with open(DATAFILENAME) as file:
                 data = file.read()
@@ -136,20 +145,15 @@ async def serve_client(reader, writer):
 async def main():
     global gc_text, tz_offset
     print('Connecting to Network...')
-    connect_to_network()
+    connect()
 
     # Pico Real Time Clock
     rtc = RTC()
     local_time = rtc.datetime()
     print("Initial (rtc) ", local_time)
 
-    # Set RTC to (utc) time from ntp server
-    # while rtc.datetime()[0] == 2021:
-    try:
-        settime()
-    except OSError as e:
-        print('OSError', e, 'while trying to set rtc')
-    print('setting rtc to UTC...')
+    # Sync RTC to ntp time server (utc)
+    sync_rtc_to_ntp()
     time.sleep(1)
 
     gm_time = rtc.datetime()
@@ -166,18 +170,30 @@ async def main():
         else:
             tz_offset = TZ_OFFSET + 1
 
-        if not network_connection_OK():
-            connect_to_network()
-
         try:
             current_time = rtc.datetime()
             y = current_time[0]  # curr year
             mo = current_time[1] # current month
             d = current_time[2]  # current day
             h = current_time[4]  # curr hour (UTC)
+            lh = utc_hour_to_local_hour(h) # (local)
             m = current_time[5]  # curr minute
             s = current_time[6]  # curr second
             
+            timestamp = f"{lh:02}:{m:02}:{s:02}"
+            
+            # Test WiFi connection twice per minute
+            if s in (15, 45):
+                if not wlan.isconnected():
+                    record(f"{timestamp} WiFi not connected")
+                    wlan.disconnect()
+                    record("Attempting to re-connect")
+                    success = connect()
+                    record(f"Re-connected: {success}")
+                    # After successful reconnection, sync rtc to ntp
+                    if success:
+                        sync_rtc_to_ntp()
+                        time.sleep(1)
             
             # Print time and temperature every 30 min
             if s in (1, 2) and not m % 30:
@@ -197,8 +213,8 @@ async def main():
                 except Exception as e:
                     record(repr(e))
             
-            # At 4:59 AM (UTC)
-            if h == 4 and m == 59:
+            # Once daily (during the wee hours)
+            if lh == 2 and m == 10 and s == 1:
                 
                 # Find high and low values from previous day
                 with open(DATAFILENAME) as f:
