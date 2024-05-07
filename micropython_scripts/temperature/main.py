@@ -2,6 +2,7 @@
 Measure room temperature using Dallas 18B20
 Make daily data available via webserver
 Log daily highs and lows
+Power failure tolerant
 """
 
 import onewire
@@ -62,7 +63,6 @@ def sync_rtc_to_ntp():
         settime()
     except OSError as e:
         logger.error("Error while trying to set time: " + str(e))
-        print('OSError', e, 'while trying to set rtc')
     print('setting rtc to UTC...')
 
 def local_hour_to_utc_hour(loc_h):
@@ -164,7 +164,7 @@ async def main():
     asyncio.create_task(asyncio.start_server(serve_client, "0.0.0.0", 80))
     while True:
 
-        # check DST jumper (daylight savings time)
+        # check for daylight savings time
         if DST_pin.value():
             tz_offset = TZ_OFFSET
         else:
@@ -180,7 +180,7 @@ async def main():
             m = current_time[5]  # curr minute
             s = current_time[6]  # curr second
             
-            timestamp = f"{lh:02}:{m:02}:{s:02}"
+            timestamp = f"{lh:02}:{m:02}"
             
             # Test WiFi connection twice per minute
             if s in (15, 45):
@@ -203,18 +203,15 @@ async def main():
                     for rom in roms:
                         temp = round(sensor.read_temp(rom),1)
                     fahr = temp * 9/5 + 32
-                    lh = h + tz_offset  # local hour
-                    if lh < 0:
-                        lh += 24
-                    record(f"{fahr:.1f} F @ {lh:02}:{m:02}")
+                    record(f"{fahr:.1f} F @ {timestamp}")
                     
                     gc_text = 'free: ' + str(gc.mem_free()) + '\n'
                     gc.collect()
                 except Exception as e:
-                    record(repr(e))
-            
-            # Once daily (during the wee hours)
-            if lh == 2 and m == 10 and s == 1:
+                    logger.error("sensor read error: " + str(e))
+
+            # Once daily (after midnight)
+            if lh == 0 and m == 10 and s == 1:
                 
                 # Find high and low values from previous day
                 with open(DATAFILENAME) as f:
@@ -223,7 +220,7 @@ async def main():
                 # first line is yesterday's date
                 yesterdate = lines[0].split()[-1].strip()
 
-                # collect all lines starting with temperature value
+                # collect lines starting with temperature value
                 lines = [line for line in lines if line[0].isdigit()]
 
                 # define a key to sort by float() of first word in string
