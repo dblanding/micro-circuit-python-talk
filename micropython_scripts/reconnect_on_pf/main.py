@@ -1,5 +1,5 @@
 """
-Reconnect to wifi on power failure
+power failure tolerant code example
 Based on garage temperature code
 """
 
@@ -13,7 +13,6 @@ import time
 import _thread
 from secrets import secrets
 import uasyncio as asyncio
-import socket
 
 # Global values
 gc_text = ''
@@ -23,7 +22,16 @@ ERRORLOGFILENAME = 'errorlog.txt'
 ssid = secrets['ssid']
 password = secrets['wifi_password']
 TZ_OFFSET = secrets['tz_offset']
-tz_offset = TZ_OFFSET
+
+# Set up DST pin
+# Jumper to ground when DST is in effect
+DST_pin = Pin(17, Pin.IN, Pin.PULL_UP)
+
+# Account for Daylight Savings Time
+if DST_pin.value():
+    tz_offset = TZ_OFFSET
+else:
+    tz_offset = TZ_OFFSET + 1
 
 # Set up logging
 logger = logging.getLogger('mylogger')
@@ -33,10 +41,6 @@ logger.addHandler(fh)
 
 # Set up onboard led
 onboard = Pin("LED", Pin.OUT, value=0)
-
-# Set up DST pin
-# Jumper to ground when DST is in effect
-DST_pin = Pin(17, Pin.IN, Pin.PULL_UP)
 
 html = """<!DOCTYPE html>
 <html>

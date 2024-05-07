@@ -1,6 +1,7 @@
 """
 control carriage lights: On at sunset / Off at 'bedtime'
 Make daily log data available via webserver
+Power failure tolerant
 """
 
 import gc
@@ -13,24 +14,32 @@ import urequests
 from secrets import secrets
 import uasyncio as asyncio
 
-onboard = Pin("LED", Pin.OUT, value=0)
-
 # Global values
-DST = True  # daylight time in effect
 DATAFILENAME = 'data.txt'
 ssid = secrets['ssid']
 password = secrets['wifi_password']
 lat = secrets['lat']
 long = secrets['long']
-tz_offset = secrets['tz_offset']
-if DST:
-    tz_offset += 1
+TZ_OFFSET = secrets['tz_offset']
+
+# Set up DST pin
+# Jumper to ground when DST is in effect
+DST_pin = Pin(17, Pin.IN, Pin.PULL_UP)
+
+# Account for Daylight Savings Time
+if DST_pin.value():
+    tz_offset = TZ_OFFSET
+else:
+    tz_offset = TZ_OFFSET + 1
 
 # URLs to fetch from
 SUNSET_URL = "http://api.sunrise-sunset.org/json?lat=%f&lng=%f&formatted=0"\
     % (lat, long)
 LIGHTS_ON_URL = "http://192.168.1.54/control?cmd=GPIO,12,1"
 LIGHTS_OFF_URL = "http://192.168.1.54/control?cmd=GPIO,12,0"
+
+# Set up onboard led
+onboard = Pin("LED", Pin.OUT, value=0)
 
 html = """<!DOCTYPE html>
 <html>
@@ -40,6 +49,22 @@ html = """<!DOCTYPE html>
     </body>
 </html>
 """
+
+def record(line):
+    """Combined print and append to data file."""
+    print(line)
+    line += '\n'
+    with open(DATAFILENAME, 'a') as file:
+        file.write(line)
+
+def sync_rtc_to_ntp():
+    """Sync RTC to (utc) time from ntp server."""
+    try:
+        settime()
+    except OSError as e:
+        err_string = 'OSError' + e + 'while trying to set rtc'
+        record(err_string)
+    print('setting rtc to UTC...')
 
 def local_hour_to_utc_hour(loc_h):
     utc_h = loc_h - tz_offset
@@ -52,13 +77,6 @@ def utc_hour_to_local_hour(utc_h):
     if loc_h < 0:
         loc_h += 24
     return loc_h
-
-def record(line):
-    """Combined print and append to data file."""
-    print(line)
-    line += '\n'
-    with open(DATAFILENAME, 'a') as file:
-        file.write(line)
 
 def get_sunset_time():
     """Get (UTC) time of today's sunset. return (H, M, S)"""
@@ -91,7 +109,8 @@ def lights_off():
 
 wlan = network.WLAN(network.STA_IF)
 
-def connect_to_network():
+def connect():
+    """Return True on successful connection, otherwise False"""
     wlan.active(True)
     wlan.config(pm = 0xa11140) # Disable power-save mode
     wlan.connect(ssid, password)
@@ -105,18 +124,12 @@ def connect_to_network():
         print('waiting for connection...')
         time.sleep(1)
 
-    if wlan.status() != 3:
-        raise RuntimeError('network connection failed')
+    if not wlan.isconnected():
+        return False
     else:
         print('connected')
         status = wlan.ifconfig()
         print('ip = ' + status[0])
-
-def network_connection_OK():
-    if not wlan.status() == 3:
-        record("Network connection failed.")
-        return False
-    else:
         return True
 
 async def serve_client(reader, writer):
@@ -127,9 +140,8 @@ async def serve_client(reader, writer):
     while await reader.readline() != b"\r\n":
         pass
 
-    file = open(DATAFILENAME)
-    data = file.read()
-    file.close
+    with open(DATAFILENAME) as file:
+        data = file.read()
 
     response = html % data
     writer.write('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
@@ -141,21 +153,16 @@ async def serve_client(reader, writer):
 
 async def main():
     print('Connecting to Network...')
-    connect_to_network()
+    connect()
 
     # Pico Real Time Clock
     rtc = RTC()
     local_time = rtc.datetime()
     print("Initial (rtc) ", local_time)
 
-    # Set RTC to (utc) time from ntp server
-    while rtc.datetime()[0] == 2021:
-        try:
-            settime()
-        except OSError as e:
-            print('OSError', e, 'while trying to set rtc')
-        print('setting rtc to UTC...')
-        time.sleep(1)
+    # Sync RTC to ntp time server (utc)
+    sync_rtc_to_ntp()
+    time.sleep(1)
 
     gm_time = rtc.datetime()
     print('Reset to (UTC)', gm_time)
@@ -168,18 +175,39 @@ async def main():
     H, M, S = get_sunset_time()
 
     while True:
+
+        # Check for daylight savings time (set w/ jumper)
+        if DST_pin.value():
+            tz_offset = TZ_OFFSET
+        else:
+            tz_offset = TZ_OFFSET + 1
+        
         current_time = rtc.datetime()
         y = current_time[0]  # curr year
         mo = current_time[1] # current month
         d = current_time[2]  # current day
         h = current_time[4]  # curr hour (UTC)
+        lh = utc_hour_to_local_hour(h) # (local)
         m = current_time[5]  # curr minute
         s = current_time[6]  # curr second
 
+        timestamp = f"{lh:02}:{m:02}:{s:02}"
 
+        # Test WiFi connection twice per minute
+        if s in (15, 45):
+            if not wlan.isconnected():
+                record(f"{timestamp} WiFi not connected")
+                wlan.disconnect()
+                record("Attempting to re-connect")
+                success = connect()
+                record(f"Re-connected: {success}")
+                # After successful reconnection, sync rtc to ntp
+                if success:
+                    sync_rtc_to_ntp()
+                    time.sleep(1)
+            
         # Print UTC time on the hour
         if not s and not m % 60:
-            lh = utc_hour_to_local_hour(h)
             record("%d:%02d:%02d (UTC); %d:%02d:%02d (Local)" % (h, m, s, lh, m, s))
 
             print('free:', str(gc.mem_free()))
@@ -196,8 +224,6 @@ async def main():
         # At 22:0:0 (UTC), get time of today's sunset
         if h == 22 and m == 0 and s == 0:
             record("Getting time of today's sunset")
-            if not network_connection_OK():
-                connect_to_network()
             try:
                 H, M, S = get_sunset_time()
                 LH = utc_hour_to_local_hour(H)
@@ -208,8 +234,6 @@ async def main():
         # At sunset, turn lights on
         if h == H and m == M  and s == 0:
             record("Turning lights on")
-            if not network_connection_OK():
-                connect_to_network()
             try:
                 lights_on()
             except Exception as e:
@@ -219,8 +243,6 @@ async def main():
         utc_hour = local_hour_to_utc_hour(9 + 12)
         if h == utc_hour and m == 1 and s == 0:
             record("Turning lights off")
-            if not network_connection_OK():
-                connect_to_network()
             try:
                 lights_off()
             except Exception as e:
