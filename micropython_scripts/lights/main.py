@@ -222,8 +222,8 @@ async def main():
                 file.write('Sunset yesterday @ %d:%02d:%02d (UTC)\n' % (H, M, S))
 
         # At 22:0:0 (UTC), get time of today's sunset
-        if h == 22 and m == 0 and s == 0:
-            record("Getting time of today's sunset")
+        if lh == 18 and m == 0 and s in (0, 1):
+            record(f"At {timestamp}, getting time of today's sunset")
             try:
                 H, M, S = get_sunset_time()
                 LH = utc_hour_to_local_hour(H)
@@ -232,24 +232,22 @@ async def main():
                 record('Error: %s at %d:%02d:%02d' % (e, h, m, s))
         
         # At sunset, turn lights on
-        if h == H and m == M  and s == 0:
-            record("Turning lights on")
+        if h == H and m == M  and s in (0, 1):
+            record(f"Turning lights on at {timestamp}")
             try:
                 lights_on()
             except Exception as e:
                 record(repr(e))
 
         # At 9:01 PM local time, turn lights off
-        utc_hour = local_hour_to_utc_hour(9 + 12)
-        if h == utc_hour and m == 1 and s == 0:
-            record("Turning lights off")
+        if lh == 21 and m == 1 and s in (0, 1):
+            record(f"Turning lights off at {timestamp}")
             try:
                 lights_off()
             except Exception as e:
                 record(repr(e))
 
         onboard.on()
-        # print("heartbeat")
         await asyncio.sleep(0.1)
         onboard.off()
         await asyncio.sleep(0.9)
