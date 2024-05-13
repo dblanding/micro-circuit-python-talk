@@ -185,7 +185,7 @@ async def main():
             # Test WiFi connection twice per minute
             if s in (15, 45):
                 if not wlan.isconnected():
-                    record(f"{timestamp} WiFi not connected")
+                    record(f"At {timestamp} WiFi not connected")
                     wlan.disconnect()
                     record("Attempting to re-connect")
                     success = connect()
