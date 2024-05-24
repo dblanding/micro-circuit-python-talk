@@ -11,6 +11,7 @@ import time
 import _thread
 from secrets import secrets
 import uasyncio as asyncio
+from ota import OTAUpdater
 
 # Global values
 gc_text = ''
@@ -50,7 +51,7 @@ def sync_rtc_to_ntp():
         settime()
     except OSError as e:
         with open(ERRORLOGFILENAME, 'a') as file:
-            file.write("OSError while trying to set time: " + str(e))
+            file.write(f"OSError while trying to set time: {str(e)}\n")
     print('setting rtc to UTC...')
 
 def local_hour_to_utc_hour(loc_h):
@@ -130,7 +131,7 @@ async def serve_client(reader, writer):
         print("Client disconnected")
     except Exception as e:
         with open(ERRORLOGFILENAME, 'a') as file:
-            file.write("serve_client error: " + str(e))
+            file.write(f"serve_client error: {str(e)}\n")
 
 async def main():
     global gc_text, tz_offset
@@ -172,13 +173,14 @@ async def main():
             
             timestamp = f"{lh:02}:{m:02}:{s:02}"
 
-            # Check for OTA updates once per minute
-            if s == 0:
+            # Check for OTA updates once per day
+            if lh == 17 and m == 0 and s == 0:
                 repo_name = "micro-circuit-python-talk"
                 path = "micropython_scripts/reconnect_on_pf"
-                firmware_url = f"https://github.com/dblanding/{repo_name}/blob/main/{path}/"
-                ota_updater = OTAUpdater(ssid, password, firmware_url, "log.txt")
+                firmware_url = f"https://github.com/dblanding/{repo_name}/main/{path}/"
+                ota_updater = OTAUpdater(ssid, password, firmware_url, "main.py")
                 ota_updater.download_and_install_update_if_available()
+                del(ota_updater)
 
             # Test WiFi connection twice per minute
             if s in (15, 45):
@@ -198,10 +200,11 @@ async def main():
                 try:
                     record(f"datapoint @ {timestamp}")
                     
-                    gc_text = 'free: ' + str(gc.mem_free()) + '\n'
+                    gc_text = f"free: {str(gc.mem_free())}\n"
                     gc.collect()
                 except Exception as e:
-                    record(repr(e))
+                    with open(ERRORLOGFILENAME, 'a') as file:
+                        file.write(f"error printing: {repr(e)}\n")
 
             # Once daily (during the wee hours)
             if lh == 2 and m == 10 and s == 1:
@@ -229,7 +232,7 @@ async def main():
 
         except Exception as e:
             with open(ERRORLOGFILENAME, 'a') as file:
-                file.write("main loop error: " + str(e))
+                file.write(f"main loop error: {str(e)}\n")
 
         # Flash LED
         onboard.on()

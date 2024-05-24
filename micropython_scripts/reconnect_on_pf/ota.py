@@ -8,11 +8,18 @@ from time import sleep
 class OTAUpdater:
     """ This class handles OTA updates. It connects to the Wi-Fi,
         checks for updates, downloads and installs them."""
+
     def __init__(self, ssid, password, repo_url, filename):
         self.filename = filename
         self.ssid = ssid
         self.password = password
         self.repo_url = repo_url
+        if "www.github.com" in self.repo_url :
+            print(f"Updating {repo_url} to raw.githubusercontent")
+            self.repo_url = self.repo_url.replace("www.github","raw.githubusercontent")
+        elif "github.com" in self.repo_url:
+            print(f"Updating {repo_url} to raw.githubusercontent'")
+            self.repo_url = self.repo_url.replace("github","raw.githubusercontent")            
         self.version_url = self.repo_url + 'version.json'
         print(f"version url is: {self.version_url}")
         self.firmware_url = self.repo_url + filename
@@ -29,9 +36,9 @@ class OTAUpdater:
             with open('version.json', 'w') as f:
                 json.dump({'version': self.current_version}, f)
 
-        def fetch_latest_code(self)->bool:
+    def fetch_latest_code(self):
         """ Fetch the latest code from the repo, returns False if not found."""
-        
+    
         # Fetch the latest code from the repo.
         response = urequests.get(self.firmware_url)
         if response.status_code == 200:
@@ -63,7 +70,7 @@ class OTAUpdater:
         self.latest_code = None
 
         # Overwrite the old code.
-#         os.rename('latest_code.py', self.filename)
+        # os.rename('latest_code.py', self.filename)
 
     def update_and_reset(self):
         """ Update the code and reset the device."""
@@ -91,7 +98,7 @@ class OTAUpdater:
         print(f"data is: {data}, url is: {self.version_url}")
         print(f"data version is: {data['version']}")
         # Turn list to dict using dictionary comprehension
-#         my_dict = {data[i]: data[i + 1] for i in range(0, len(data), 2)}
+        # my_dict = {data[i]: data[i + 1] for i in range(0, len(data), 2)}
         
         self.latest_version = int(data['version'])
         print(f'latest version is: {self.latest_version}')
