@@ -1,10 +1,8 @@
 """
-power failure tolerant code example
-Based on garage temperature code
+Added OTA updates
 """
 
 import gc
-import logging
 import micropython
 from  machine import Pin, RTC
 import network
@@ -33,12 +31,6 @@ if DST_pin.value():
 else:
     tz_offset = TZ_OFFSET + 1
 
-# Set up logging
-logger = logging.getLogger('mylogger')
-logger.setLevel(logging.INFO)
-fh = logging.FileHandler(ERRORLOGFILENAME)
-logger.addHandler(fh)
-
 # Set up onboard led
 onboard = Pin("LED", Pin.OUT, value=0)
 
@@ -57,8 +49,8 @@ def sync_rtc_to_ntp():
     try:
         settime()
     except OSError as e:
-        logger.error("Error while trying to set time: " + str(e))
-        print('OSError', e, 'while trying to set rtc')
+        with open(ERRORLOGFILENAME, 'a') as file:
+            file.write("OSError while trying to set time: " + str(e))
     print('setting rtc to UTC...')
 
 def local_hour_to_utc_hour(loc_h):
@@ -137,7 +129,8 @@ async def serve_client(reader, writer):
         await writer.wait_closed()
         print("Client disconnected")
     except Exception as e:
-        logger.error("serve_client error: " + str(e))
+        with open(ERRORLOGFILENAME, 'a') as file:
+            file.write("serve_client error: " + str(e))
 
 async def main():
     global gc_text, tz_offset
@@ -178,7 +171,15 @@ async def main():
             s = current_time[6]  # curr second
             
             timestamp = f"{lh:02}:{m:02}:{s:02}"
-            
+
+            # Check for OTA updates once per minute
+            if s == 0:
+                repo_name = "micro-circuit-python-talk"
+                path = "micropython_scripts/reconnect_on_pf"
+                firmware_url = f"https://github.com/dblanding/{repo_name}/blob/main/{path}/"
+                ota_updater = OTAUpdater(ssid, password, firmware_url, "log.txt")
+                ota_updater.download_and_install_update_if_available()
+
             # Test WiFi connection twice per minute
             if s in (15, 45):
                 if not wlan.isconnected():
@@ -227,7 +228,8 @@ async def main():
                     file.write('Date: %d/%d/%d\n' % (mo, d, y))
 
         except Exception as e:
-            logger.error("main loop error: " + str(e))
+            with open(ERRORLOGFILENAME, 'a') as file:
+                file.write("main loop error: " + str(e))
 
         # Flash LED
         onboard.on()
