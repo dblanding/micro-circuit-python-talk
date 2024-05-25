@@ -9,10 +9,8 @@ class OTAUpdater:
     """ This class handles OTA updates. It connects to the Wi-Fi,
         checks for updates, downloads and installs them."""
 
-    def __init__(self, ssid, password, repo_url, filename):
+    def __init__(self, repo_url, filename):
         self.filename = filename
-        self.ssid = ssid
-        self.password = password
         self.repo_url = repo_url
         if "www.github.com" in self.repo_url :
             print(f"Updating {repo_url} to raw.githubusercontent")
@@ -87,9 +85,6 @@ class OTAUpdater:
     def check_for_updates(self):
         """ Check if updates are available."""
         
-        # Connect to Wi-Fi
-        # self.connect_wifi()
-
         print(f'Checking for latest version... on {self.version_url}')
         response = urequests.get(self.version_url)
         

@@ -1,7 +1,3 @@
-"""
-Added OTA updates
-"""
-
 import gc
 import micropython
 from  machine import Pin, RTC
@@ -142,7 +138,7 @@ async def main():
     repo_name = "micro-circuit-python-talk"
     path = "micropython_scripts/reconnect_on_pf"
     firmware_url = f"https://github.com/dblanding/{repo_name}/main/{path}/"
-    ota_updater = OTAUpdater(ssid, password, firmware_url, "main.py")
+    ota_updater = OTAUpdater(firmware_url, "main.py")
     ota_updater.download_and_install_update_if_available()
 
     # Pico Real Time Clock
