@@ -138,6 +138,13 @@ async def main():
     print('Connecting to Network...')
     connect()
 
+    # Check for OTA updates
+    repo_name = "micro-circuit-python-talk"
+    path = "micropython_scripts/reconnect_on_pf"
+    firmware_url = f"https://github.com/dblanding/{repo_name}/main/{path}/"
+    ota_updater = OTAUpdater(ssid, password, firmware_url, "main.py")
+    ota_updater.download_and_install_update_if_available()
+
     # Pico Real Time Clock
     rtc = RTC()
     local_time = rtc.datetime()
@@ -172,15 +179,6 @@ async def main():
             s = current_time[6]  # curr second
             
             timestamp = f"{lh:02}:{m:02}:{s:02}"
-
-            # Check for OTA updates once per day
-            if lh == 17 and m == 0 and s == 0:
-                repo_name = "micro-circuit-python-talk"
-                path = "micropython_scripts/reconnect_on_pf"
-                firmware_url = f"https://github.com/dblanding/{repo_name}/main/{path}/"
-                ota_updater = OTAUpdater(ssid, password, firmware_url, "main.py")
-                ota_updater.download_and_install_update_if_available()
-                del(ota_updater)
 
             # Test WiFi connection twice per minute
             if s in (15, 45):
