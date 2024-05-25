@@ -7,7 +7,8 @@ from time import sleep
 
 class OTAUpdater:
     """ This class handles OTA updates. It connects to the Wi-Fi,
-        checks for updates, downloads and installs them."""
+        checks for updates, downloads and installs them.
+        Note: Allow 5 minutes for cached values to clear."""
 
     def __init__(self, repo_url, filename):
         self.filename = filename
@@ -83,7 +84,7 @@ class OTAUpdater:
         machine.reset()  # Reset the device to run the new code.
         
     def check_for_updates(self):
-        """ Check if updates are available."""
+        """ Check if updates are available. (Note: values are cached for 5 min.)"""
         
         print(f'Checking for latest version... on {self.version_url}')
         response = urequests.get(self.version_url)
