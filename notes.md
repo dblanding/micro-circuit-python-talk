@@ -139,7 +139,7 @@ Friends don't let friends mess around with local time zones on a microcontroller
 ## OSError: [Errno 12] ENOMEM / Garbage Collection
 
 * Getting OSError: [Errno 12] ENOMEM (Error NO MEMory)
-    * My main while loop was chewing through all its memeory
+    * My main while loop was chewing through all its memory
     * Program wouldn't run a full day
     * Added the following lines into loop
     * The free memory would print every 10 minutes and just kept going down until there was none left
@@ -152,5 +152,5 @@ print('info:', str(micropython.mem_info()))
 
 * Automatic garbage collection wasn't working
 * Adding `gc.collect()` line to force garbage collection solved the problem
-* Using gc.ccollect(): [MicroPython on microcontrollers](https://docs.micropython.01studio.org/zh_CN/latest/reference/constrained.html)
+* Using `gc.collect()`: [MicroPython on microcontrollers](https://docs.micropython.01studio.org/zh_CN/latest/reference/constrained.html)
     *  See 'Strings vs Bytes' 1/2 way down the page
