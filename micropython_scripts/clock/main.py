@@ -143,7 +143,8 @@ async def main():
     # Check for OTA updates
     repo_name = "micro-circuit-python-talk"
     path = "micropython_scripts/clock"
-    firmware_url = f"https://github.com/dblanding/{repo_name}/main/{path}/"
+    branch = "main"
+    firmware_url = f"https://github.com/dblanding/{repo_name}/{branch}/{path}/"
     ota_updater = OTAUpdater(firmware_url, "main.py")
     ota_updater.download_and_install_update_if_available()
 
