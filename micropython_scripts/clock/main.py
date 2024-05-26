@@ -58,6 +58,9 @@ html = """<!DOCTYPE html>
 </html>
 """
 
+# Pico Real Time Clock
+rtc = RTC()
+
 # setup pins for LED, Electro_magnet, Pendulum_sensor
 led = Pin("LED", Pin.OUT, value=0)  # LED
 em = Pin(3, Pin.OUT, value=0)  # Electro_magnet
@@ -147,9 +150,6 @@ async def main():
     firmware_url = f"https://github.com/dblanding/{repo_name}/{branch}/{path}/"
     ota_updater = OTAUpdater(firmware_url, "main.py")
     ota_updater.download_and_install_update_if_available()
-
-    # Pico Real Time Clock
-    rtc = RTC()
 
     # Sync RTC to ntp time server (utc)
     sync_rtc_to_ntp()
