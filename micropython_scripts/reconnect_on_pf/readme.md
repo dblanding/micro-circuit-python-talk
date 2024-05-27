@@ -1,7 +1,15 @@
 # Explore robust code to make the Pico W devices more tolerant of power failure
-* When the power goes out, however briefly, the pico W devices lose their WiFi connection and must be manually restarted in order to recover.
-* This file explores a way to periodically test the WiFi connection and reconnect it if needed.
 
-## The code here is based on the garage temperature sensor, which has a 1 second loop delay.
-* Both the garage door sensor and temperature sensor have 1 second loop delays, making them easier to test (by interrupting power to the router). In contrast, the clock and lights have loop delays on the order of 1 minute.
-* In tests where, the router power is cycled, this code seems to work well. Now I will leave it running and wait for the occurrence of some actual power outages.
+* This code explores a way to periodically test the WiFi connection and reconnect if needed.
+
+## The code here doesn't **actually do** anything. It is the code for the garage temperature sensor, which has a 1 second loop delay.
+
+* This code also implements OTA updates, as shown by Kevin McAleer in his [MicroPython Over-the-Air updater](https://github.com/kevinmcaleer/ota)
+    * I modified his code slightly
+        * Whereas Kevin injects the branch name `main` in the OTAUpdater class, I chose to have the caller add it.
+        * My WiFi connection is made outside of OTAUpdater, so I removed it from the OTAUpdater code.
+        
+## Multi-file updater
+* I think it would be useful to be able to update mutiple files at once
+* `OTA_multi_Updater` aims to do that.
+

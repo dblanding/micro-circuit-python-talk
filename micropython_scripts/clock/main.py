@@ -148,7 +148,7 @@ async def main():
     path = "micropython_scripts/clock"
     branch = "main"
     firmware_url = f"https://github.com/dblanding/{repo_name}/{branch}/{path}/"
-    ota_updater = OTAUpdater(firmware_url, "main.py")
+    ota_updater = OTAUpdater(firmware_url, "main.py", "ota.py")
     ota_updater.download_and_install_update_if_available()
 
     # Sync RTC to ntp time server (utc)
