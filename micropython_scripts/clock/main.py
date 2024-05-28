@@ -68,6 +68,11 @@ sensor = Pin(4, Pin.IN, Pin.PULL_UP)  # Pendulum_sensor
 
 wlan = network.WLAN(network.STA_IF)
 
+def timestamp():
+    Dyear, Dmonth, Dday, Dhour, Dmin, Dsec, Dweekday, Dyearday = time.localtime()
+    DdateandTime = "{:02d}/{:02d}/{} {:02d}:{:02d}:{:02d}"
+    return DdateandTime.format(Dmonth, Dday, Dyear, Dhour, Dmin, Dsec)
+
 def connect():
     """Return True on successful connection, otherwise False"""
     wlan.active(True)
@@ -97,7 +102,7 @@ def sync_rtc_to_ntp():
         settime()
     except OSError as e:
         with open(ERRORLOGFILENAME, 'a') as file:
-            file.write(f"OSError while trying to set time: {str(e)}\n")
+            file.write(f"{timestamp()} OSError while trying to set time: {str(e)}\n")
     print('setting rtc to UTC...')
 
 def get_curr_time():
@@ -136,7 +141,7 @@ async def serve_client(reader, writer):
         print("Client disconnected")
     except Exception as e:
         with open(ERRORLOGFILENAME, 'a') as file:
-            file.write(f"serve_client error: {str(e)}\n")
+            file.write(f"{timestamp()} serve_client error: {str(e)}\n")
 
 async def main():
     global data, gc_text
@@ -218,7 +223,7 @@ async def main():
 
         except Exception as e:
             with open(ERRORLOGFILENAME, 'a') as file:
-                file.write(f"main loop error: {str(e)}\n")
+                file.write(f"{timestamp()} main loop error: {str(e)}\n")
 
 try:
     asyncio.run(main())
