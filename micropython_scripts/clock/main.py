@@ -192,16 +192,6 @@ async def main():
                 # reset counter
                 count = 0
                 
-                # Test WiFi connection once per hour
-                if m == 0 and s == 0:
-                    if not wlan.isconnected():
-                        wlan.disconnect()
-                        success = connect()
-                        # After successful reconnection, sync rtc to ntp
-                        if success:
-                            sync_rtc_to_ntp()
-                            time.sleep(1)
-            
                 # Decide if the electro-magnet should be energized
                 if s > 30:
                     em.on()
@@ -219,11 +209,11 @@ async def main():
                     gc_text = 'free: ' + str(gc.mem_free()) + '\n'
                     gc.collect()
 
-            await asyncio.sleep(0.005)  # debounce delay
-
         except Exception as e:
             with open(ERRORLOGFILENAME, 'a') as file:
                 file.write(f"{timestamp()} main loop error: {str(e)}\n")
+
+        await asyncio.sleep(0.005)  # debounce delay
 
 try:
     asyncio.run(main())
