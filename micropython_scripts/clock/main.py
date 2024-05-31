@@ -43,7 +43,7 @@ from ota import OTAUpdater
 # Global values
 gc_text = ''
 data = []
-MAXLEN = 500  # max len(data)
+MAXLEN = 50  # max len(data)
 ERRORLOGFILENAME = 'errorlog.txt'
 ssid = secrets['ssid']
 password = secrets['wifi_password']
