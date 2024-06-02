@@ -192,7 +192,7 @@ async def main():
                         file.write(errortext)
                 
                 # Decide if the electro-magnet should be energized
-                if s > TARGET_VAL:
+                if s > TARGET_SECONDS:
                     em.on()
                     datatext = f"Sec = {s} + EM_ON\n"
                 else:
