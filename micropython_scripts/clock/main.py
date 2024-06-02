@@ -146,7 +146,7 @@ async def main():
     path = "micropython_scripts/clock"
     branch = "main"
     firmware_url = f"https://github.com/dblanding/{repo_name}/{branch}/{path}/"
-    ota_updater = OTAUpdater(firmware_url, "main.py", "ota.py")
+    ota_updater = OTAUpdater(firmware_url, "main.py", "ota.py", "errorlog.txt")
     ota_updater.download_and_install_update_if_available()
 
     # Sync time to UTC
@@ -187,17 +187,17 @@ async def main():
 
                 # Report error if value of seconds "Jumps" 
                 if abs(s - s_prev) > 1:
-                    errortext = f"{timestamp()} Sec jumped from {s_prev} to {s}"
+                    errortext = f"{timestamp()} Sec jumped from {s_prev} to {s}\n"
                     with open(ERRORLOGFILENAME, 'a') as file:
                         file.write(errortext)
                 
                 # Decide if the electro-magnet should be energized
                 if s > TARGET_SECONDS:
                     em.on()
-                    datatext = f"Sec = {s} + EM_ON\n"
+                    datatext = f"Sec = {s}, electro-magnet ON\n"
                 else:
                     em.off()
-                    datatext = f"Sec = {s} + EM_OFF\n"
+                    datatext = f"Sec = {s}, electro-magnet OFF\n"
 
                 s_prev = s
                 
