@@ -121,9 +121,7 @@ async def serve_client(reader, writer):
                 text = file.read()
             heading = "ERRORS"
         else:
-            text = ''
-            for line in data:
-                text += line
+            text = datatext
             text += gc_text
             heading = "Append '/err' to URL to see error log"
 
