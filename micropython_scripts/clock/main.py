@@ -40,8 +40,8 @@ from ota import OTAUpdater
 
 # Global values
 gc_text = ''
-data = []
-MAXLEN = 50  # max len(data)
+datatext = ''
+TARGET_SECONDS = 1  # Target value of seconds
 ERRORLOGFILENAME = 'errorlog.txt'
 ssid = secrets['ssid']
 password = secrets['wifi_password']
@@ -62,11 +62,6 @@ em = Pin(3, Pin.OUT, value=0)  # Electro_magnet
 sensor = Pin(4, Pin.IN, Pin.PULL_UP)  # Pendulum_sensor
 
 wlan = network.WLAN(network.STA_IF)
-
-def timestamp():
-    Dyear, Dmonth, Dday, Dhour, Dmin, Dsec, *rest = time.localtime()
-    DdateandTime = "{:02d}/{:02d}/{} {:02d}:{:02d}:{:02d}"
-    return DdateandTime.format(Dmonth, Dday, Dyear, Dhour, Dmin, Dsec)
 
 def connect():
     """Return True on successful connection, otherwise False"""
@@ -99,6 +94,11 @@ def sync_to_ntp():
         with open(ERRORLOGFILENAME, 'a') as file:
             file.write(f"{timestamp()} OSError while trying to set time: {str(e)}\n")
     print('setting time to UTC...')
+
+def timestamp():
+    Dyear, Dmonth, Dday, Dhour, Dmin, Dsec, *rest = time.localtime()
+    DdateandTime = "{:02d}/{:02d}/{} {:02d}:{:02d}:{:02d}"
+    return DdateandTime.format(Dmonth, Dday, Dyear, Dhour, Dmin, Dsec)
 
 def get_curr_time():
     current_time = time.localtime()
@@ -139,7 +139,7 @@ async def serve_client(reader, writer):
             file.write(f"{timestamp()} serve_client error: {str(e)}\n")
 
 async def main():
-    global data, gc_text
+    global datatext, gc_text
     print('Connecting to Network...')
     connect()
 
@@ -160,11 +160,12 @@ async def main():
     print('Setting up webserver...')
     asyncio.create_task(asyncio.start_server(serve_client, "0.0.0.0", 80))
 
-    # Wait until s == 30
-    while s != 30:
+    # Wait until s == TARGET_SECONDS
+    while s != TARGET_SECONDS:
         _, _, s = get_curr_time()
         time.sleep(1)
 
+    s_prev = s
     count = 0  # Accumulated number of elapsed 'ticks'
     snsr_high = False  # status previous time through loop
 
@@ -182,22 +183,25 @@ async def main():
             # Once every 66 ticks
             if count == 66:
                 h, m, s = get_curr_time()
-                str_curr_time = '%s:%s:%s (UTC)' % (h, m, s)
                 
                 # reset counter
                 count = 0
+
+                # Report error if value of seconds "Jumps" 
+                if abs(s - s_prev) > 1:
+                    errortext = f"{timestamp()} Sec jumped from {s_prev} to {s}"
+                    with open(ERRORLOGFILENAME, 'a') as file:
+                        file.write(errortext)
                 
                 # Decide if the electro-magnet should be energized
-                if s > 30:
+                if s > TARGET_VAL:
                     em.on()
-                    print("Electro-magnet ON")
-                    data.append(str_curr_time + ' EM_ON\n')
+                    datatext = f"Sec = {s} + EM_ON\n"
                 else:
                     em.off()
-                    print("Electro-magnet OFF")
-                    data.append(str_curr_time + ' EM_OFF\n')
-                if len(data) > MAXLEN:
-                    data.pop(0)
+                    datatext = f"Sec = {s} + EM_OFF\n"
+
+                s_prev = s
                 
                 # collect garbage hourly
                 if m == 0:
