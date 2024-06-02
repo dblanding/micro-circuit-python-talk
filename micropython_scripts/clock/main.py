@@ -1,5 +1,5 @@
 """
-MicroPython script speed regulator for grandfather clock
+MicroPython (on Pico) speed regulator for grandfather clock
 Nominal pendulum tick rate is 66 ticks/min.
 
 * includes a webserver to publish performance data and error log
@@ -18,20 +18,18 @@ the clock runs approximately 2 sec/hour slow.
 When the electro-magnet (positioned with a 1/4 inch gap) is turned ON,
 the clock runs approximately 8 sec/hour fast.
 
-At power-up, connect to WiFi and check for OTA updates, then check
-RTC time (h:m:s). When the value of s reaches 30, start the main loop.
+At power-up, connect to WiFi and check for OTA updates, then set time
+to UTC. Get time (h:m:s). When the value of s reaches 30, start main loop.
 Within the loop, count the ticks of the pendulum. 
-Once 66 ticks are counted, check the time again.
-If the (integer) value of 's' has increased, the electro-magnet is
-turned on for the next cycle. If the new value of 's' remains the same,
-the electro-magnet remains off.
+Once 66 ticks are counted, check the time again. If s > 30,
+the electro-magnet is turned on, otherwise it remains off.
 
-In normal operation, the clock will tick merrily along, with the
-electro-magnet on for one minute of every every 5 or 6.
+In normal operation, the clock ticks merrily along, with the
+value of s mostly staying at 30, changing to 31 every 3 or 4 cycles.
 """
 
 import gc
-from  machine import Pin, RTC
+from  machine import Pin
 import network
 from ntptime import settime
 import time
@@ -58,9 +56,6 @@ html = """<!DOCTYPE html>
 </html>
 """
 
-# Pico Real Time Clock
-rtc = RTC()
-
 # setup pins for LED, Electro_magnet, Pendulum_sensor
 led = Pin("LED", Pin.OUT, value=0)  # LED
 em = Pin(3, Pin.OUT, value=0)  # Electro_magnet
@@ -69,7 +64,7 @@ sensor = Pin(4, Pin.IN, Pin.PULL_UP)  # Pendulum_sensor
 wlan = network.WLAN(network.STA_IF)
 
 def timestamp():
-    Dyear, Dmonth, Dday, Dhour, Dmin, Dsec, Dweekday, Dyearday = time.localtime()
+    Dyear, Dmonth, Dday, Dhour, Dmin, Dsec, *rest = time.localtime()
     DdateandTime = "{:02d}/{:02d}/{} {:02d}:{:02d}:{:02d}"
     return DdateandTime.format(Dmonth, Dday, Dyear, Dhour, Dmin, Dsec)
 
@@ -96,20 +91,20 @@ def connect():
         print('ip = ' + status[0])
         return True
 
-def sync_rtc_to_ntp():
-    """Sync RTC to (utc) time from ntp server."""
+def sync_to_ntp():
+    """Sync Pico clock to UTC time."""
     try:
         settime()
     except OSError as e:
         with open(ERRORLOGFILENAME, 'a') as file:
             file.write(f"{timestamp()} OSError while trying to set time: {str(e)}\n")
-    print('setting rtc to UTC...')
+    print('setting time to UTC...')
 
 def get_curr_time():
-    current_time = rtc.datetime()
-    h = current_time[4]  # curr hour (UTC)
-    m = current_time[5]  # curr minute
-    s = current_time[6]  # curr second
+    current_time = time.localtime()
+    h = current_time[3]  # curr hour (UTC)
+    m = current_time[4]  # curr minute
+    s = current_time[5]  # curr second
     return h, m, s
 
 async def serve_client(reader, writer):
@@ -156,8 +151,8 @@ async def main():
     ota_updater = OTAUpdater(firmware_url, "main.py", "ota.py")
     ota_updater.download_and_install_update_if_available()
 
-    # Sync RTC to ntp time server (utc)
-    sync_rtc_to_ntp()
+    # Sync time to UTC
+    sync_to_ntp()
     time.sleep(1)
 
     _, _, s = get_curr_time()
