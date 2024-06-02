@@ -160,7 +160,7 @@ async def main():
 
     # Wait until s == TARGET_SECONDS
     while s != TARGET_SECONDS:
-        _, _, s = get_curr_time()
+        h, m, s = get_curr_time()
         time.sleep(1)
 
     s_prev = s
@@ -194,10 +194,10 @@ async def main():
                 # Decide if the electro-magnet should be energized
                 if s > TARGET_SECONDS:
                     em.on()
-                    datatext = f"Sec = {s}, electro-magnet ON\n"
+                    datatext = f"{h}:{m}:{s} electro-magnet ON\n"
                 else:
                     em.off()
-                    datatext = f"Sec = {s}, electro-magnet OFF\n"
+                    datatext = f"{h}:{m}:{s} electro-magnet OFF\n"
 
                 s_prev = s
                 
