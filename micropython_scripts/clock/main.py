@@ -2,30 +2,30 @@
 MicroPython (on Pico) speed regulator for grandfather clock
 Nominal pendulum tick rate is 66 ticks/min.
 
-* includes a webserver to publish performance data and error log
-* automatic re-connect to WiFi after power failure
-* OTA updates on power-up
+* includes a webserver to publish current status and error log
+* multiple file OTA updates on power-up
 
 An IR sensor is mounted to detect pendulum movement past BDC.
 The value of the sensor is normally high when nothing is detected.
 It goes low when it detects the rod extending below the bob.
 
-The pendulum 'bob' is adjusted (mechanically) to run slightly slow.
+The pendulum length is adjusted (mechanically) to run slightly slow.
 An electro-magnet at BDC is used to speed up the pendulum as needed.
 
 Without the influence of the electro-magnet,
 the clock runs approximately 2 sec/hour slow.
-When the electro-magnet (positioned with a 1/4 inch gap) is turned ON,
+When the electro-magnet (positioned with a 1/4 inch gap) is ON,
 the clock runs approximately 8 sec/hour fast.
 
 At power-up, connect to WiFi and check for OTA updates, then set time
-to UTC. Get time (h:m:s). When the value of s reaches 30, start main loop.
-Within the loop, count the ticks of the pendulum. 
-Once 66 ticks are counted, check the time again. If s > 30,
-the electro-magnet is turned on, otherwise it remains off.
+(h:m:s) to UTC. When s reaches TARGET_SECONDS, start main loop.
+In the loop, count the ticks of the pendulum. When the count reaches
+66 ticks, check the time again. If s > TARGET_SECONDS, the
+electro-magnet is turned on, otherwise it remains off.
 
-In normal operation, the clock ticks merrily along, with the
-value of s mostly staying at 30, changing to 31 every 3 or 4 cycles.
+In normal operation, the clock ticks merrily along, with s staying at
+TARGET_SECONDS, occasionally changing to TARGET_SECONDS + 1
+(every 3 or 4 cycles).
 """
 
 import gc
@@ -41,7 +41,7 @@ from ota import OTAUpdater
 # Global values
 gc_text = ''
 datatext = ''
-TARGET_SECONDS = 1  # Target value of seconds
+TARGET_SECONDS = 1
 ERRORLOGFILENAME = 'errorlog.txt'
 ssid = secrets['ssid']
 password = secrets['wifi_password']
@@ -93,7 +93,6 @@ def sync_to_ntp():
     except OSError as e:
         with open(ERRORLOGFILENAME, 'a') as file:
             file.write(f"{timestamp()} OSError while trying to set time: {str(e)}\n")
-    print('setting time to UTC...')
 
 def timestamp():
     Dyear, Dmonth, Dday, Dhour, Dmin, Dsec, *rest = time.localtime()
@@ -142,6 +141,7 @@ async def main():
     connect()
 
     # Check for OTA updates
+    print("Checking for OTA Updates...")
     repo_name = "micro-circuit-python-talk"
     path = "micropython_scripts/clock"
     branch = "main"
@@ -150,6 +150,7 @@ async def main():
     ota_updater.download_and_install_update_if_available()
 
     # Sync time to UTC
+    print('setting time to UTC...')
     sync_to_ntp()
     time.sleep(1)
 

@@ -74,3 +74,10 @@ such as `15:56:10 (UTC) EM_OFF`  or `15:56:50 (UTC) EM_ON`.
 ````
 * Whatever the cause, I don't think it's mechanical or software. A real puzzle...
 
+## Revise Code to make it easier to monitor performance
+* Start using OTA updates on startup for code modifications
+* Use time.localtime() instead of RTC()
+* Change TARGET_SECONDS to 1 (was 30)
+* When value of s **jumps** by a value >1, record event as an error
+* Change web I/F to just show current time and electro-magnet status
+
