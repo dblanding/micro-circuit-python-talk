@@ -222,7 +222,7 @@ async def main():
                 file.write('Sunset yesterday @ %d:%02d:%02d (UTC)\n' % (H, M, S))
 
         # At 22:0:0 (UTC), get time of today's sunset
-        if lh == 18 and m == 0 and s in (0, 1):
+        if lh == 18 and m == 0 and s == 0:
             record(f"At {timestamp}, getting time of today's sunset")
             try:
                 H, M, S = get_sunset_time()
