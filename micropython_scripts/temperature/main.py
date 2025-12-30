@@ -15,9 +15,12 @@ import network
 from ntptime import settime
 import time
 import _thread
+import rp2
 from secrets import secrets
 import uasyncio as asyncio
 import socket
+
+rp2.country('US')
 
 # Global values
 gc_text = ''
@@ -25,7 +28,7 @@ DATAFILENAME = 'data.txt'
 LOGFILENAME = 'log.txt'
 ERRORLOGFILENAME = 'errorlog.txt'
 ssid = secrets['ssid']
-password = secrets['wifi_password']
+psk = secrets['wifi_password']
 TZ_OFFSET = secrets['tz_offset']
 tz_offset = TZ_OFFSET
 
@@ -49,8 +52,8 @@ roms = sensor.scan()
 
 html = """<!DOCTYPE html>
 <html>
-    <head> <title>Garage Temperature</title> </head>
-    <body> <h1>Garage Temperature</h1>
+    <head> <title>Room Temperature</title> </head>
+    <body> <h1>Room Temperature</h1>
         <h3>%s</h3>
         <pre>%s</pre>
     </body>
@@ -89,18 +92,18 @@ wlan = network.WLAN(network.STA_IF)
 def connect():
     wlan.active(True)
     wlan.config(pm = 0xa11140) # Disable power-save mode
-    wlan.connect(ssid, password)
+    wlan.connect(ssid, psk)
 
-    max_wait = 10
+    max_wait = 30
     while max_wait > 0:
         if wlan.status() < 0 or wlan.status() >= 3:
             print("wlan.status =", wlan.status())
             break
         max_wait -= 1
-        print('waiting for connection...')
+        print('waiting for Wi-Fi connection...')
         time.sleep(1)
 
-    if wlan.isconnected():
+    if not wlan.isconnected():
         return False
     else:
         print('connected')
@@ -157,6 +160,7 @@ async def main():
     time.sleep(1)
 
     gm_time = rtc.datetime()
+    # yr, mo, day, dow(0-6 -> mon-sun), hr, min, sec, subsec
     print('Reset to (UTC)', gm_time)
     record("power-up @ (%d, %d, %d, %d, %d, %d, %d, %d) (UTC)" % gm_time)
 
@@ -181,20 +185,21 @@ async def main():
             s = current_time[6]  # curr second
             
             timestamp = f"{lh:02}:{m:02}"
-            
-            # Test WiFi connection twice per minute
-            if s in (15, 45):
-                if not wlan.isconnected():
-                    record(f"At {timestamp} WiFi not connected")
-                    wlan.disconnect()
-                    record("Attempting to re-connect")
-                    success = connect()
-                    record(f"Re-connected: {success}")
-                    # After successful reconnection, sync rtc to ntp
-                    if success:
-                        sync_rtc_to_ntp()
-                        time.sleep(1)
-            
+
+            # After a power outage, the Pico will restart
+            # immediately with default date = 1/1/2021.
+            # The router takes longer to come back online.
+
+            # Test WiFi connection
+            if  y == 2021 or not wlan.isconnected():
+                wlan.disconnect()
+                record(f"Attempting to re-connect Wi-Fi at {timestamp}")
+                success = connect()
+                record(f"Re-connected = {success}")
+                if success:
+                    sync_rtc_to_ntp()
+                time.sleep(10)  # Patience w/ the router
+
             # Print time and temperature every 30 min
             if s in (1, 2) and not m % 30:
                 try:
