@@ -31,6 +31,7 @@ ssid = secrets['ssid']
 psk = secrets['wifi_password']
 TZ_OFFSET = secrets['tz_offset']
 tz_offset = TZ_OFFSET
+fahr = 0
 
 # Set up logging
 logger = logging.getLogger('mylogger')
@@ -133,8 +134,10 @@ async def serve_client(reader, writer):
                 data = file.read()
             heading = "Append '/log' to URL to see log file"
 
+        # Add current temp
+        data += f'Current temp = {fahr:.1f} F \n'
         data += gc_text
-
+        
         response = html % (heading, data)
         writer.write('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
         writer.write(response)
@@ -146,7 +149,7 @@ async def serve_client(reader, writer):
         logger.error("serve_client error: " + str(e))
 
 async def main():
-    global gc_text, tz_offset
+    global gc_text, tz_offset, fahr
     print('Connecting to Network...')
     connect()
 
@@ -200,20 +203,23 @@ async def main():
                     sync_rtc_to_ntp()
                 time.sleep(10)  # Patience w/ the router
 
-            # Print time and temperature every 30 min
-            if s in (1, 2) and not m % 30:
+            # Measure temperature periodically
+            if s % 10 == 0:
                 try:
                     sensor.convert_temp()
                     await asyncio.sleep(2)
                     for rom in roms:
                         temp = round(sensor.read_temp(rom),1)
                     fahr = temp * 9/5 + 32
-                    record(f"{fahr:.1f} F @ {timestamp}")
-                    
-                    gc_text = 'free: ' + str(gc.mem_free()) + '\n'
-                    gc.collect()
                 except Exception as e:
                     logger.error("sensor read error: " + str(e))
+            
+            # Print time and temperature every 30 min
+            if s == 5 and not m % 30:
+                record(f"{fahr:.1f} F @ {timestamp}")
+                    
+                gc_text = 'free: ' + str(gc.mem_free()) + '\n'
+                gc.collect()
 
             # Once daily (after midnight)
             if lh == 0 and m == 10 and s == 1:
