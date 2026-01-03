@@ -1,8 +1,9 @@
 """
-Measure room temperature using Dallas 18B20
-Make daily data available via webserver
-Log daily highs and lows
-Power failure tolerant
+Measure room temperature (every 10 sec) using Dallas 18B20
+Record and display values every 30 min throughout day (plus curr temp)
+After midnight, record previous day's high and low
+Start a new daily record.
+Auto reconnect to WiFi after power failure
 """
 
 import onewire
@@ -132,7 +133,8 @@ async def serve_client(reader, writer):
         else:
             with open(DATAFILENAME) as file:
                 data = file.read()
-            heading = "Append '/log' to URL to see log file"
+            heading = "Append '/log' to URL to see log file. "
+            heading += "Append '/err' to URL to see error log"
 
         # Add current temp
         data += f'Current temp = {fahr:.1f} F \n'
@@ -193,7 +195,7 @@ async def main():
             # immediately with default date = 1/1/2021.
             # The router takes longer to come back online.
 
-            # Test WiFi connection
+            # Restart WiFi connection if needed
             if  y == 2021 or not wlan.isconnected():
                 wlan.disconnect()
                 record(f"Attempting to re-connect Wi-Fi at {timestamp}")
@@ -203,26 +205,26 @@ async def main():
                     sync_rtc_to_ntp()
                 time.sleep(10)  # Patience w/ the router
 
-            # Measure temperature periodically
-            if s % 10 == 0:
+            # Measure temperature every 10 sec, on the 5's
+            if s % 10 == 5:
                 try:
                     sensor.convert_temp()
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(0.75)
                     for rom in roms:
                         temp = round(sensor.read_temp(rom),1)
                     fahr = temp * 9/5 + 32
                 except Exception as e:
-                    logger.error("sensor read error: " + str(e))
+                    logger.error(f"sensor read error: {e} @ {timestamp}")
             
             # Print time and temperature every 30 min
-            if s == 5 and not m % 30:
+            elif m % 30 == 0 and s == 0:
                 record(f"{fahr:.1f} F @ {timestamp}")
                     
                 gc_text = 'free: ' + str(gc.mem_free()) + '\n'
                 gc.collect()
 
             # Once daily (after midnight)
-            if lh == 0 and m == 10 and s == 1:
+            elif lh == 0 and m == 10 and s == 0:
                 
                 # Find high and low values from previous day
                 with open(DATAFILENAME) as f:
@@ -258,7 +260,7 @@ async def main():
                     file.write('Temp F @ Time\n')
 
         except Exception as e:
-            logger.error("main loop error: " + str(e))
+            logger.error(f"main loop error: {e} @ {timestamp}")
 
         # Flash LED
         onboard.on()
